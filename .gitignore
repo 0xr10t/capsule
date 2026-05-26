@@ -7,7 +7,7 @@ coverage
 .DS_Store
 target
 pkg
+packages/sui-contracts/build
 .idea
 .vscode
 apps/*/.vite
-

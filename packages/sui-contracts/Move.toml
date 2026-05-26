@@ -1,0 +1,7 @@
+[package]
+name = "capsule_protocol"
+edition = "2024"
+license = "MIT"
+
+[addresses]
+capsule_protocol = "0x0"
