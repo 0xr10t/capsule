@@ -86,3 +86,4 @@ fails unless Walrus publication and Sui document anchoring both succeed.
 - [Architecture](docs/architecture.md)
 - [Demo script](docs/demo.md)
 - [Walrus and Sui integration](docs/integration.md)
+- [Testnet validation record](docs/testnet-validation.md)
