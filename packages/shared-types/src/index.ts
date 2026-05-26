@@ -59,6 +59,7 @@ export interface DisclosureCapsule {
   proof: MerkleRangeProof;
   createdAt: string;
   signature: string;
+  signerPublicKey: string;
   paymentTx: string;
   buyer: string;
   publisher: string;
@@ -101,4 +102,11 @@ export interface BlobUploadResult {
   blobId: BlobId;
   suiObjectId?: string;
   storage: "memory" | "walrus";
+}
+
+export interface EncryptedDocumentEnvelope {
+  version: "1";
+  algorithm: "AES-256-GCM";
+  initializationVector: string;
+  ciphertext: string;
 }
