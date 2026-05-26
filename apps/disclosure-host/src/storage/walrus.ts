@@ -11,11 +11,19 @@ export class WalrusProvider implements StorageProvider {
     private readonly publisherUrl: string,
     private readonly aggregatorUrl: string,
     private readonly epochs: number,
+    private readonly ownerAddress?: string,
+    private readonly authToken?: string,
   ) {}
 
   async uploadBlob(data: Uint8Array): Promise<BlobUploadResult> {
-    const endpoint = `${this.publisherUrl}/v1/blobs?epochs=${this.epochs}`;
-    const response = await fetch(endpoint, { method: "PUT", body: data as BodyInit });
+    const endpoint = new URL("/v1/blobs", this.publisherUrl);
+    endpoint.searchParams.set("epochs", String(this.epochs));
+    endpoint.searchParams.set("permanent", "true");
+    if (this.ownerAddress) {
+      endpoint.searchParams.set("send_object_to", this.ownerAddress);
+    }
+    const headers = this.authToken ? { authorization: `Bearer ${this.authToken}` } : undefined;
+    const response = await fetch(endpoint, { method: "PUT", body: data as BodyInit, headers });
     if (!response.ok) {
       throw new Error(`Walrus publisher rejected blob upload (${response.status})`);
     }
@@ -43,4 +51,3 @@ export class WalrusProvider implements StorageProvider {
     throw new Error("Permanent Walrus blobs cannot be deleted through Capsule");
   }
 }
-

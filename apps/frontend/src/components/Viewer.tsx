@@ -1,6 +1,7 @@
 import { verifyCapsule } from "@capsule/sdk-typescript";
 import { useMutation } from "@tanstack/react-query";
 import { useCapsuleStore } from "../lib/store";
+import { verifySuiDocumentAnchor } from "../lib/sui";
 
 export function Viewer() {
   const stored = useCapsuleStore((state) => state.selectedCapsule);
@@ -9,7 +10,7 @@ export function Viewer() {
       if (!stored) {
         throw new Error("Select a capsule from the marketplace or explorer first.");
       }
-      return verifyCapsule(stored.capsule);
+      return verifyCapsule(stored.capsule).then((result) => verifySuiDocumentAnchor(stored.capsule, result));
     },
   });
   if (!stored) {
@@ -41,13 +42,20 @@ export function Viewer() {
         <article className="listing-card space-y-5 text-sm">
           <Metadata label="Capsule blob" value={stored.capsuleBlobId} />
           <Metadata label="Committed root" value={capsule.rootHash} />
+          {capsule.suiDocumentId && <Metadata label="Sui document object" value={capsule.suiDocumentId} />}
+          {stored.suiDisclosureId && <Metadata label="Sui disclosure object" value={stored.suiDisclosureId} />}
           <Metadata label="Payment transaction" value={capsule.paymentTx} />
           <Metadata label="Proof leaves" value={String(capsule.proof.proofs.length)} />
           {verification.data && (
             <div className={`verification ${verification.data.valid ? "valid" : "invalid"}`}>
-              {verification.data.valid ? "Inclusion proof verified" : "Verification failed"}
+              {verification.data.anchored
+                ? "Verified against Sui anchor"
+                : verification.data.valid
+                  ? "Inclusion proof verified (demo mode)"
+                  : "Verification failed"}
             </div>
           )}
+          {verification.error && <div className="verification invalid">{verification.error.message}</div>}
         </article>
       </div>
     </section>

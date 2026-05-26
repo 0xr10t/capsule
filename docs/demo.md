@@ -26,12 +26,16 @@ npm run dev
 
 ## Testnet Variant
 
-1. Set `STORAGE_DRIVER=walrus` in `.env` and configure testnet publisher and
-   aggregator endpoints.
-2. Build and publish `packages/sui-contracts` with the Sui CLI.
-3. Set `VITE_CAPSULE_PACKAGE_ID` to the resulting package ID.
-4. Connect a Sui testnet wallet in the UI.
+1. Put a funded Sui testnet `suiprivkey...` in local `.env` as
+   `SUI_PRIVATE_KEY`. Do not send or commit this value.
+2. Run `npm run deploy:testnet`.
+3. Set both `SUI_PACKAGE_ID` and `VITE_CAPSULE_PACKAGE_ID` in `.env` to the
+   public package ID printed by the deployment.
+4. Set `PROTOCOL_MODE=testnet` and `STORAGE_DRIVER=walrus`.
+5. Configure the Walrus testnet publisher and aggregator endpoints if using a
+   service provider other than the defaults.
+6. Run `npm run dev` and publish a small encrypted source document.
 
-The Move functions are available for document and disclosure provenance. The
-UI transaction calls remain deliberately labeled as future testnet wiring until
-the wallet flow records returned object IDs back into marketplace metadata.
+The resulting listing shows a Sui anchored document object; an issued capsule
+records a Sui disclosure object, and local verification resolves the document
+root from Sui before reporting an anchored result.

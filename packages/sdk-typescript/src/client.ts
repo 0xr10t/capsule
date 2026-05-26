@@ -5,6 +5,7 @@ import type {
   PurchaseReceipt,
   PurchaseRequest,
   StoredCapsule,
+  VerifyResult,
 } from "@capsule/shared-types";
 
 async function jsonRequest<T>(url: string, init?: RequestInit): Promise<T> {
@@ -53,5 +54,11 @@ export class MarketplaceClient {
   fetchCapsule(blobId: string): Promise<StoredCapsule> {
     return jsonRequest<StoredCapsule>(`${this.disclosureHostUrl}/capsules/${encodeURIComponent(blobId)}`);
   }
-}
 
+  verifyDisclosure(capsule: StoredCapsule["capsule"]): Promise<VerifyResult> {
+    return jsonRequest<VerifyResult>(`${this.disclosureHostUrl}/verify`, {
+      method: "POST",
+      body: JSON.stringify(capsule),
+    });
+  }
+}

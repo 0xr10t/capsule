@@ -41,6 +41,12 @@ encrypted-document and capsule flow without publishing data externally.
 through a configured Walrus publisher and retrieves them through an aggregator.
 Only use test data or encrypted payloads when testing against public storage.
 
+`PROTOCOL_MODE=testnet` enables the real protocol path: Walrus uploads are
+permanent, resulting blob objects are assigned to the configured Sui signer,
+documents are anchored with `register_document`, and issued disclosures are
+recorded with `record_disclosure`. `SUI_PRIVATE_KEY` is server-only and must
+exist only in the gitignored local `.env` file.
+
 ## Quick Start
 
 ```bash
@@ -60,9 +66,23 @@ npm run move:build
 npm run wasm:web
 ```
 
+## Testnet Deployment
+
+Never paste a private key into source code, chat, screenshots, or a commit.
+Place a funded Sui testnet `suiprivkey...` value only in local `.env`, then
+publish the Move package:
+
+```bash
+npm run deploy:testnet
+```
+
+The command prints the public package ID. Configure both `SUI_PACKAGE_ID` and
+`VITE_CAPSULE_PACKAGE_ID` with that ID, set `PROTOCOL_MODE=testnet` and
+`STORAGE_DRIVER=walrus`, then start the services. In this mode document upload
+fails unless Walrus publication and Sui document anchoring both succeed.
+
 ## Documentation
 
 - [Architecture](docs/architecture.md)
 - [Demo script](docs/demo.md)
 - [Walrus and Sui integration](docs/integration.md)
-

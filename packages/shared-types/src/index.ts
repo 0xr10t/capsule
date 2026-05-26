@@ -15,7 +15,9 @@ export interface DocumentListing {
   lineCount: number;
   rootHash: HexHash;
   encryptedBlobId: BlobId;
+  walrusBlobObjectId?: string;
   suiDocumentId?: string;
+  documentTx?: string;
   pricePerLineMist: string;
   createdAt: string;
 }
@@ -63,12 +65,16 @@ export interface DisclosureCapsule {
   paymentTx: string;
   buyer: string;
   publisher: string;
+  suiDocumentId?: string;
   suiDisclosureId?: string;
 }
 
 export interface StoredCapsule {
   capsule: DisclosureCapsule;
   capsuleBlobId: BlobId;
+  walrusBlobObjectId?: string;
+  suiDisclosureId?: string;
+  disclosureTx?: string;
 }
 
 export interface PublishDocumentRequest {
@@ -96,6 +102,9 @@ export interface VerifyResult {
   computedRoot: HexHash;
   expectedRoot: HexHash;
   reason?: string;
+  anchored?: boolean;
+  chainRoot?: HexHash;
+  suiDocumentId?: string;
 }
 
 export interface BlobUploadResult {

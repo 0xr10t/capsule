@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { fileURLToPath } from "node:url";
 import cors from "cors";
+import { config } from "dotenv";
 import express from "express";
 import { buildMerkleTree, generateRangeProof, splitLines, verifyCapsule } from "@capsule/sdk-typescript";
 import type {
@@ -12,11 +14,15 @@ import type {
 import { z } from "zod";
 import { decryptDocument, encryptDocument, signCapsule } from "./crypto.js";
 import { createStorageProvider } from "./storage/index.js";
+import { createSuiAnchorProvider } from "./sui.js";
+
+config({ path: fileURLToPath(new URL("../../../.env", import.meta.url)) });
 
 const port = Number(process.env.DISCLOSURE_HOST_PORT ?? 4001);
 const marketplaceUrl = process.env.MARKETPLACE_API_URL ?? "http://localhost:4000";
 const app = express();
-const storage = createStorageProvider();
+const sui = createSuiAnchorProvider();
+const storage = createStorageProvider(sui?.address);
 const documentKeys = new Map<string, Buffer>();
 
 const publishSchema = z.object({
@@ -44,7 +50,14 @@ app.use(cors());
 app.use(express.json({ limit: "20mb" }));
 
 app.get("/health", (_request, response) => {
-  response.json({ service: "disclosure-host", ok: true, storage: process.env.STORAGE_DRIVER ?? "memory" });
+  response.json({
+    service: "disclosure-host",
+    ok: true,
+    mode: process.env.PROTOCOL_MODE ?? "demo",
+    storage: process.env.STORAGE_DRIVER ?? "memory",
+    suiSigner: sui?.address,
+    packageId: process.env.SUI_PACKAGE_ID,
+  });
 });
 
 app.post("/documents/upload", async (request, response) => {
@@ -54,15 +67,19 @@ app.post("/documents/upload", async (request, response) => {
     const merkle = await buildMerkleTree(lines);
     const encrypted = encryptDocument(input.content);
     const blob = await storage.uploadBlob(Buffer.from(JSON.stringify(encrypted.envelope)));
+    const chainRecord = sui ? await sui.registerDocument(merkle.rootHash, blob.blobId) : undefined;
     const listing: DocumentListing = {
       id: randomUUID(),
       title: input.title,
       description: input.description,
-      publisher: input.publisher,
+      publisher: sui?.address ?? input.publisher,
       category: input.category,
       lineCount: lines.length,
       rootHash: merkle.rootHash,
       encryptedBlobId: blob.blobId,
+      walrusBlobObjectId: blob.suiObjectId,
+      suiDocumentId: chainRecord?.objectId,
+      documentTx: chainRecord?.transactionDigest,
       pricePerLineMist: input.pricePerLineMist,
       createdAt: new Date().toISOString(),
     };
@@ -107,10 +124,26 @@ app.post("/disclosure/generate", async (request, response) => {
       paymentTx: purchase.paymentTx,
       buyer: purchase.buyer,
       publisher: listing.publisher,
+      suiDocumentId: listing.suiDocumentId,
     };
     const capsule: DisclosureCapsule = { ...unsignedCapsule, ...signCapsule(unsignedCapsule) };
     const capsuleBlob = await storage.uploadBlob(Buffer.from(JSON.stringify(capsule)));
-    const stored: StoredCapsule = { capsule, capsuleBlobId: capsuleBlob.blobId };
+    const chainRecord = sui && listing.suiDocumentId
+      ? await sui.recordDisclosure(
+          listing.suiDocumentId,
+          purchase.buyer,
+          purchase.range.start,
+          purchase.range.end,
+          capsuleBlob.blobId,
+        )
+      : undefined;
+    const stored: StoredCapsule = {
+      capsule,
+      capsuleBlobId: capsuleBlob.blobId,
+      walrusBlobObjectId: capsuleBlob.suiObjectId,
+      suiDisclosureId: chainRecord?.objectId,
+      disclosureTx: chainRecord?.transactionDigest,
+    };
     await marketplaceRequest<StoredCapsule>("/internal/capsules", {
       method: "POST",
       body: JSON.stringify(stored),
@@ -133,10 +166,32 @@ app.get("/capsules/:blobId", async (request, response) => {
 
 app.post("/verify", async (request, response) => {
   const capsule = request.body as DisclosureCapsule;
-  response.json(await verifyCapsule(capsule));
+  const localResult = await verifyCapsule(capsule);
+  if (!localResult.valid || !capsule.suiDocumentId || !sui) {
+    response.json({ ...localResult, anchored: false, suiDocumentId: capsule.suiDocumentId });
+    return;
+  }
+  try {
+    const chainRoot = await sui.documentRoot(capsule.suiDocumentId);
+    response.json({
+      ...localResult,
+      valid: chainRoot === capsule.rootHash,
+      anchored: chainRoot === capsule.rootHash,
+      chainRoot,
+      suiDocumentId: capsule.suiDocumentId,
+      reason: chainRoot === capsule.rootHash ? undefined : "Capsule root does not match its Sui Document anchor",
+    });
+  } catch (error) {
+    response.json({
+      ...localResult,
+      valid: false,
+      anchored: false,
+      suiDocumentId: capsule.suiDocumentId,
+      reason: error instanceof Error ? error.message : "Sui anchor verification failed",
+    });
+  }
 });
 
 app.listen(port, () => {
   console.log(`Capsule disclosure host listening on http://localhost:${port}`);
 });
-

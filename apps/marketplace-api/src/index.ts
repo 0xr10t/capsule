@@ -1,9 +1,13 @@
 import { randomUUID } from "node:crypto";
+import { fileURLToPath } from "node:url";
 import cors from "cors";
+import { config } from "dotenv";
 import express from "express";
 import type { DocumentListing, PurchaseReceipt, StoredCapsule } from "@capsule/shared-types";
 import { z } from "zod";
 import { MarketplaceStore } from "./store.js";
+
+config({ path: fileURLToPath(new URL("../../../.env", import.meta.url)) });
 
 const port = Number(process.env.MARKETPLACE_PORT ?? 4000);
 const app = express();
@@ -23,7 +27,9 @@ const listingSchema = z.object({
   lineCount: z.number().int().positive(),
   rootHash: z.string().regex(/^[\da-f]{64}$/i),
   encryptedBlobId: z.string().min(1),
+  walrusBlobObjectId: z.string().optional(),
   suiDocumentId: z.string().optional(),
+  documentTx: z.string().optional(),
   pricePerLineMist: z.string().regex(/^\d+$/),
   createdAt: z.string().datetime(),
 });
@@ -121,4 +127,3 @@ app.get("/capsules", (_request, response) => {
 app.listen(port, () => {
   console.log(`Capsule marketplace API listening on http://localhost:${port}`);
 });
-

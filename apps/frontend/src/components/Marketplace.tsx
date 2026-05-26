@@ -135,6 +135,7 @@ export function Marketplace() {
             <div className="mt-5 flex gap-5 font-mono text-xs text-slate-400">
               <span>{listing.lineCount} lines</span>
               <span title={listing.rootHash}>root {listing.rootHash.slice(0, 10)}...</span>
+              {listing.suiDocumentId && <span className="text-teal-300">Sui anchored</span>}
             </div>
             <PurchasePanel listing={listing} />
           </article>
@@ -143,4 +144,3 @@ export function Marketplace() {
     </>
   );
 }
-

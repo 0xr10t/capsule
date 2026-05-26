@@ -46,6 +46,7 @@ export function Upload() {
       <p className="mt-4 max-w-2xl text-slate-400">
         Plaintext is processed by the disclosure host for this MVP. Only an AES-256-GCM envelope
         is sent to public blob storage; buyers receive purchased lines, never your master key.
+        In testnet mode, ownership is derived from the server-side Sui signer.
       </p>
       <form className="mt-10 grid gap-6 lg:grid-cols-[0.8fr_1.2fr]" onSubmit={submit}>
         <div className="listing-card flex flex-col gap-5">
@@ -97,4 +98,3 @@ export function Upload() {
     </section>
   );
 }
-

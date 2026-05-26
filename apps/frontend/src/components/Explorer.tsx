@@ -34,11 +34,10 @@ export function Explorer() {
               </small>
             </span>
             <span className="font-mono text-xs text-slate-400">{stored.capsuleBlobId.slice(0, 30)}...</span>
-            <span className="text-teal-300">Inspect proof -&gt;</span>
+            <span className="text-teal-300">{stored.suiDisclosureId ? "On-chain proof ->" : "Inspect proof ->"}</span>
           </button>
         ))}
       </div>
     </section>
   );
 }
-
