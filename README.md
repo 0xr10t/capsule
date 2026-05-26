@@ -81,6 +81,12 @@ The command prints the public package ID. Configure both `SUI_PACKAGE_ID` and
 `STORAGE_DRIVER=walrus`, then start the services. In this mode document upload
 fails unless Walrus publication and Sui document anchoring both succeed.
 
+The current public testnet deployment is recorded in
+[`deployments/sui-testnet.json`](deployments/sui-testnet.json). A synthetic
+Walrus plus Sui anchored disclosure was verified through both the API and UI;
+its public artifacts are recorded in
+[`docs/testnet-validation.md`](docs/testnet-validation.md).
+
 ## Documentation
 
 - [Architecture](docs/architecture.md)

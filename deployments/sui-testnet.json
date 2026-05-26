@@ -1,0 +1,16 @@
+{
+  "network": "testnet",
+  "validatedAt": "2026-05-26",
+  "packageId": "0x4567219aa7d9e4704b6f73b8808b8a4442d61d1985d5d66b5591082626b978a7",
+  "publisher": "0x36d11715f9de629020e20901ce473a8d44d23609c948999175a1673d183eaf21",
+  "publishTransaction": "EsFCSjENtdR91iQ8E7DnJpERPUTAenmVPAzHyQC32hm8",
+  "validation": {
+    "encryptedDocumentBlobId": "rCqpFjZYtwFv8BRsUFEKyEJAuK4I4xr503Qq_rJpREY",
+    "documentObjectId": "0xd128df2fe8e079ec426d03b4450236603d1774be5345b70ff8203c6b76408766",
+    "documentTransaction": "H2F49Xr85pdNXUgJ6FXPsZUhaA8tQTw77ddW1xrcUA4w",
+    "capsuleBlobId": "BcM_Rv_crbWO8jZGjSORC74MxhffppH0MnBSticlcK4",
+    "disclosureObjectId": "0xa7a46ad1c07e55c645cfe555a8017669a181c8c7a5b217ab237b5aceffa691f4",
+    "disclosureTransaction": "Chj1rUki8NENBs8Ps2zE7JwL7d1yCpCjcH7LKMkM7ENk",
+    "anchoredVerification": true
+  }
+}
