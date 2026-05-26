@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+:root {
+  font-family: Inter, "Avenir Next", Arial, sans-serif;
+  color: #eef7f5;
+  background: #060b13;
+  font-synthesis: none;
+  text-rendering: geometricprecision;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 78% 2%, rgba(39, 216, 184, 0.13), transparent 32rem),
+    radial-gradient(circle at 18% 32%, rgba(42, 105, 177, 0.14), transparent 38rem),
+    #060b13;
+}
+
+button {
+  cursor: pointer;
+}
+
+.eyebrow {
+  @apply text-xs font-semibold uppercase tracking-[0.28em] text-teal-300;
+}
+
+.primary-button {
+  @apply w-full rounded-xl bg-teal-300 px-5 py-3.5 text-sm font-semibold text-slate-950 transition hover:bg-teal-200 disabled:cursor-wait disabled:opacity-60;
+}
+
+.compact-button {
+  width: auto;
+  padding-left: 1.75rem;
+  padding-right: 1.75rem;
+}
+
+.protocol-card,
+.listing-card {
+  @apply rounded-2xl border border-white/8 bg-white/[0.035] p-6 shadow-2xl shadow-black/15;
+}
+
+.flow-row {
+  @apply mt-5 flex items-center gap-5 rounded-xl bg-white/[0.035] px-4 py-4;
+}
+
+.flow-row span {
+  @apply font-mono text-sm text-teal-300;
+}
+
+.flow-row strong {
+  @apply text-sm font-medium text-slate-100;
+}
+
+.status-dot {
+  @apply rounded-full bg-teal-300/12 px-3 py-1 text-xs text-teal-300;
+}
+
+.field {
+  @apply flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.15em] text-slate-400;
+}
+
+.field input,
+.field textarea,
+.source-editor {
+  @apply rounded-lg border border-white/10 bg-slate-950/45 px-3 py-2.5 font-sans text-sm tracking-normal text-slate-100 outline-none transition focus:border-teal-300/60;
+}
+
+.source-editor {
+  @apply w-full resize-none font-mono leading-7;
+}
+
+.stat {
+  @apply rounded-xl border border-white/8 bg-white/[0.03] px-3 py-4;
+}
+
+.stat strong {
+  @apply block text-slate-100;
+}
+
+.stat span {
+  @apply mt-1 block text-xs text-slate-500;
+}
+
+.empty-state {
+  @apply rounded-2xl border border-dashed border-white/12 bg-white/[0.025] p-12 text-center text-slate-400;
+}
+
+.capsule-content {
+  @apply min-h-56 whitespace-pre-wrap rounded-xl bg-slate-950/70 p-6 font-mono text-sm leading-8 text-teal-100;
+}
+
+.verification {
+  @apply rounded-xl px-4 py-3 font-semibold;
+}
+
+.verification.valid {
+  @apply bg-teal-300/10 text-teal-300;
+}
+
+.verification.invalid {
+  @apply bg-rose-400/10 text-rose-300;
+}
+
+.archive-row {
+  @apply grid w-full items-center gap-5 rounded-xl border border-white/8 bg-white/[0.035] p-5 text-left transition hover:border-teal-300/30 hover:bg-white/[0.06] md:grid-cols-[1fr_1.2fr_auto];
+}
+
+.archive-row strong {
+  @apply block font-medium text-slate-100;
+}
+
+.archive-row small {
+  @apply mt-1 block text-sm text-slate-400;
+}
