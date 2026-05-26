@@ -105,7 +105,7 @@ app.post("/disclosure/generate", async (request, response) => {
       if (!purchase.suiPurchaseId) {
         throw new Error("An on-chain Sui Purchase object is required before disclosure");
       }
-      const chainPurchase = await sui.purchase(purchase.suiPurchaseId);
+      const chainPurchase = await sui.purchase(purchase.suiPurchaseId, purchase.paymentTx);
       if (
         chainPurchase.documentId !== listing.suiDocumentId ||
         chainPurchase.buyer !== purchase.buyer ||

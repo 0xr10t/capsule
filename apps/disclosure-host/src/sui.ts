@@ -116,6 +116,7 @@ export class SuiAnchorProvider {
     if (result.effects?.status.status !== "success") {
       throw new Error("Sui rejected document commitment transaction");
     }
+    await this.client.waitForTransaction({ digest: result.digest });
     return {
       objectId: requiredObjectId(result.objectChanges, `${this.packageId}::capsule::Document`),
       transactionDigest: result.digest,
@@ -145,13 +146,15 @@ export class SuiAnchorProvider {
     if (result.effects?.status.status !== "success") {
       throw new Error("Sui rejected disclosure provenance transaction");
     }
+    await this.client.waitForTransaction({ digest: result.digest });
     return {
       objectId: requiredObjectId(result.objectChanges, `${this.packageId}::capsule::Disclosure`),
       transactionDigest: result.digest,
     };
   }
 
-  async purchase(purchaseId: string): Promise<ChainPurchase> {
+  async purchase(purchaseId: string, paymentTx: string): Promise<ChainPurchase> {
+    await this.client.waitForTransaction({ digest: paymentTx });
     const result = await this.client.getObject({
       id: purchaseId,
       options: { showContent: true, showType: true, showPreviousTransaction: true },
