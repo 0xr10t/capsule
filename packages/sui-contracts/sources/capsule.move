@@ -186,6 +186,17 @@ public entry fun record_disclosure(
     transfer::transfer(disclosure, buyer);
 }
 
+/// Seal authorization for a paid capsule encrypted under its Purchase ID.
+/// This is deliberately read-only so the buyer can retrieve the capsule again.
+entry fun seal_approve(
+    id: vector<u8>,
+    purchase: &Purchase,
+    ctx: &TxContext,
+) {
+    assert!(ctx.sender() == purchase.buyer, EUnauthorized);
+    assert!(id == object::id(purchase).to_bytes(), EWrongPurchase);
+}
+
 public fun root_hash(document: &Document): &vector<u8> {
     &document.root_hash
 }

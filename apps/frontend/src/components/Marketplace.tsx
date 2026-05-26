@@ -1,15 +1,17 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
+import { useCurrentAccount, useSignAndExecuteTransaction, useSignPersonalMessage, useSuiClient } from "@mysten/dapp-kit";
 import { Transaction } from "@mysten/sui/transactions";
 import type { DocumentListing, PurchaseRequest } from "@capsule/shared-types";
 import { useState } from "react";
 import { capsuleClient } from "../lib/client";
+import { unlockCapsule } from "../lib/seal";
 import { useCapsuleStore } from "../lib/store";
 
 function PurchasePanel({ listing }: { listing: DocumentListing }) {
   const selectCapsule = useCapsuleStore((state) => state.selectCapsule);
   const account = useCurrentAccount();
   const suiClient = useSuiClient();
+  const signPersonalMessage = useSignPersonalMessage();
   const packageId = import.meta.env.VITE_CAPSULE_PACKAGE_ID as string | undefined;
   const isAnchoredListing = Boolean(listing.suiDocumentId);
   const walletTransaction = useSignAndExecuteTransaction({
@@ -64,7 +66,18 @@ function PurchasePanel({ listing }: { listing: DocumentListing }) {
         };
       }
       const receipt = await capsuleClient.purchaseDisclosure(authorizedPurchase);
-      return capsuleClient.createDisclosure({ purchaseId: receipt.id });
+      const stored = await capsuleClient.createDisclosure({ purchaseId: receipt.id });
+      if ("sealedCapsule" in stored) {
+        if (!account) {
+          throw new Error("Connect the buyer wallet to decrypt this Seal-protected capsule.");
+        }
+        return unlockCapsule(stored, {
+          address: account.address,
+          suiClient,
+          signPersonalMessage: (message) => signPersonalMessage.mutateAsync({ message }),
+        });
+      }
+      return stored;
     },
     onSuccess: selectCapsule,
   });
@@ -123,7 +136,8 @@ function PurchasePanel({ listing }: { listing: DocumentListing }) {
       </button>
       {isAnchoredListing && (
         <p className="text-xs leading-5 text-slate-400">
-          Payment is signed in your wallet and creates a public one-use Sui purchase receipt.
+          Payment is signed in your wallet and creates a public Sui purchase receipt. Seal-enabled
+          deliveries then request a second signature to decrypt locally.
         </p>
       )}
       {mutation.error && <p className="text-sm text-rose-300">{mutation.error.message}</p>}

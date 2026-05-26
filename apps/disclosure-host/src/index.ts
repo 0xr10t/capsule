@@ -5,16 +5,19 @@ import { config } from "dotenv";
 import express from "express";
 import { buildMerkleTree, generateRangeProof, splitLines, verifyCapsule } from "@capsule/sdk-typescript";
 import type {
+  CapsuleRecord,
+  CapsuleSummary,
   DisclosureCapsule,
   DocumentListing,
   EncryptedDocumentEnvelope,
   PurchaseReceipt,
-  StoredCapsule,
+  SealedCapsuleEnvelope,
 } from "@capsule/shared-types";
 import { z } from "zod";
 import { decryptDocument, encryptDocument, signCapsule } from "./crypto.js";
 import { createStorageProvider } from "./storage/index.js";
 import { createSuiAnchorProvider } from "./sui.js";
+import { createCapsuleSealer } from "./seal.js";
 
 config({ path: fileURLToPath(new URL("../../../.env", import.meta.url)) });
 
@@ -23,6 +26,7 @@ const marketplaceUrl = process.env.MARKETPLACE_API_URL ?? "http://localhost:4000
 const app = express();
 const sui = createSuiAnchorProvider();
 const storage = createStorageProvider(sui?.address);
+const capsuleSealer = createCapsuleSealer();
 const documentKeys = new Map<string, Buffer>();
 
 const publishSchema = z.object({
@@ -57,6 +61,7 @@ app.get("/health", (_request, response) => {
     storage: process.env.STORAGE_DRIVER ?? "memory",
     suiSigner: sui?.address,
     packageId: process.env.SUI_PACKAGE_ID,
+    sealedCapsules: Boolean(capsuleSealer),
   });
 });
 
@@ -149,7 +154,25 @@ app.post("/disclosure/generate", async (request, response) => {
       suiDocumentId: listing.suiDocumentId,
     };
     const capsule: DisclosureCapsule = { ...unsignedCapsule, ...signCapsule(unsignedCapsule) };
-    const capsuleBlob = await storage.uploadBlob(Buffer.from(JSON.stringify(capsule)));
+    const summary: CapsuleSummary | undefined = purchase.suiPurchaseId
+      ? {
+          capsuleId: capsule.capsuleId,
+          documentId: capsule.documentId,
+          rootHash: capsule.rootHash,
+          lineRange: capsule.lineRange,
+          createdAt: capsule.createdAt,
+          paymentTx: capsule.paymentTx,
+          suiPurchaseId: purchase.suiPurchaseId,
+          buyer: capsule.buyer,
+          publisher: capsule.publisher,
+          suiDocumentId: capsule.suiDocumentId,
+        }
+      : undefined;
+    const sealedCapsule = capsuleSealer && purchase.suiPurchaseId
+      ? await capsuleSealer.encryptCapsule(capsule, purchase.suiPurchaseId)
+      : undefined;
+    const walrusPayload = sealedCapsule && summary ? { summary, sealedCapsule } : capsule;
+    const capsuleBlob = await storage.uploadBlob(Buffer.from(JSON.stringify(walrusPayload)));
     const chainRecord = sui && listing.suiDocumentId
       ? await sui.recordDisclosure(
           listing.suiDocumentId,
@@ -157,14 +180,23 @@ app.post("/disclosure/generate", async (request, response) => {
           capsuleBlob.blobId,
         )
       : undefined;
-    const stored: StoredCapsule = {
-      capsule,
-      capsuleBlobId: capsuleBlob.blobId,
-      walrusBlobObjectId: capsuleBlob.suiObjectId,
-      suiDisclosureId: chainRecord?.objectId,
-      disclosureTx: chainRecord?.transactionDigest,
-    };
-    await marketplaceRequest<StoredCapsule>("/internal/capsules", {
+    const stored: CapsuleRecord = sealedCapsule && summary
+      ? {
+          summary,
+          sealedCapsule,
+          capsuleBlobId: capsuleBlob.blobId,
+          walrusBlobObjectId: capsuleBlob.suiObjectId,
+          suiDisclosureId: chainRecord?.objectId,
+          disclosureTx: chainRecord?.transactionDigest,
+        }
+      : {
+          capsule,
+          capsuleBlobId: capsuleBlob.blobId,
+          walrusBlobObjectId: capsuleBlob.suiObjectId,
+          suiDisclosureId: chainRecord?.objectId,
+          disclosureTx: chainRecord?.transactionDigest,
+        };
+    await marketplaceRequest<CapsuleRecord>("/internal/capsules", {
       method: "POST",
       body: JSON.stringify(stored),
     });
@@ -177,8 +209,15 @@ app.post("/disclosure/generate", async (request, response) => {
 app.get("/capsules/:blobId", async (request, response) => {
   try {
     const bytes = await storage.fetchBlob(request.params.blobId);
-    const capsule = JSON.parse(Buffer.from(bytes).toString("utf8")) as DisclosureCapsule;
-    response.json({ capsule, capsuleBlobId: request.params.blobId } satisfies StoredCapsule);
+    const payload = JSON.parse(Buffer.from(bytes).toString("utf8")) as DisclosureCapsule | {
+      summary: CapsuleSummary;
+      sealedCapsule: SealedCapsuleEnvelope;
+    };
+    if ("sealedCapsule" in payload) {
+      response.json({ ...payload, capsuleBlobId: request.params.blobId } satisfies CapsuleRecord);
+      return;
+    }
+    response.json({ capsule: payload, capsuleBlobId: request.params.blobId } satisfies CapsuleRecord);
   } catch (error) {
     response.status(404).json({ error: error instanceof Error ? error.message : "Capsule not found" });
   }

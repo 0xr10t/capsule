@@ -1,4 +1,5 @@
 import type {
+  CapsuleRecord,
   DocumentListing,
   GenerateDisclosureRequest,
   PublishDocumentRequest,
@@ -44,15 +45,15 @@ export class MarketplaceClient {
     });
   }
 
-  createDisclosure(request: GenerateDisclosureRequest): Promise<StoredCapsule> {
-    return jsonRequest<StoredCapsule>(`${this.disclosureHostUrl}/disclosure/generate`, {
+  createDisclosure(request: GenerateDisclosureRequest): Promise<CapsuleRecord> {
+    return jsonRequest<CapsuleRecord>(`${this.disclosureHostUrl}/disclosure/generate`, {
       method: "POST",
       body: JSON.stringify(request),
     });
   }
 
-  fetchCapsule(blobId: string): Promise<StoredCapsule> {
-    return jsonRequest<StoredCapsule>(`${this.disclosureHostUrl}/capsules/${encodeURIComponent(blobId)}`);
+  fetchCapsule(blobId: string): Promise<CapsuleRecord> {
+    return jsonRequest<CapsuleRecord>(`${this.disclosureHostUrl}/capsules/${encodeURIComponent(blobId)}`);
   }
 
   verifyDisclosure(capsule: StoredCapsule["capsule"]): Promise<VerifyResult> {

@@ -1,9 +1,13 @@
-import type { DocumentListing, PurchaseReceipt, StoredCapsule } from "@capsule/shared-types";
+import type { CapsuleRecord, DocumentListing, PurchaseReceipt } from "@capsule/shared-types";
+
+function capsuleIndex(record: CapsuleRecord) {
+  return "capsule" in record ? record.capsule : record.summary;
+}
 
 export class MarketplaceStore {
   readonly documents = new Map<string, DocumentListing>();
   readonly purchases = new Map<string, PurchaseReceipt>();
-  readonly capsules = new Map<string, StoredCapsule>();
+  readonly capsules = new Map<string, CapsuleRecord>();
 
   listDocuments(): DocumentListing[] {
     return [...this.documents.values()].sort((left, right) =>
@@ -27,14 +31,13 @@ export class MarketplaceStore {
     return this.purchases.get(purchaseId);
   }
 
-  addCapsule(stored: StoredCapsule): void {
-    this.capsules.set(stored.capsule.capsuleId, stored);
+  addCapsule(stored: CapsuleRecord): void {
+    this.capsules.set(capsuleIndex(stored).capsuleId, stored);
   }
 
-  listCapsules(): StoredCapsule[] {
+  listCapsules(): CapsuleRecord[] {
     return [...this.capsules.values()].sort((left, right) =>
-      right.capsule.createdAt.localeCompare(left.capsule.createdAt),
+      capsuleIndex(right).createdAt.localeCompare(capsuleIndex(left).createdAt),
     );
   }
 }
-

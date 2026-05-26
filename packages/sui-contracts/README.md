@@ -31,6 +31,8 @@ public `Purchase` object recording the buyer, range, and amount.
 document owner records the release, marks the purchase consumed, and stores
 the purchase ID in the resulting buyer-owned `Disclosure` object.
 
-The public purchase accessors are intentionally suitable for a subsequent Seal
-policy module that approves decryption only for the paid buyer and purchased
-range.
+`seal_approve` is a read-only Seal policy for encrypted disclosure capsules.
+Its Seal identity must be the paid `Purchase` object ID, and only the buyer
+recorded by that purchase is approved to decrypt. It remains valid after
+`record_disclosure` so an authorized buyer can fetch the permanent Walrus
+capsule again.

@@ -41,6 +41,7 @@ export function Viewer() {
         </article>
         <article className="listing-card space-y-5 text-sm">
           <Metadata label="Capsule blob" value={stored.capsuleBlobId} />
+          {stored.sealProtected && <Metadata label="Delivery encryption" value="Seal / wallet-authorized decryption" />}
           <Metadata label="Committed root" value={capsule.rootHash} />
           {capsule.suiDocumentId && <Metadata label="Sui document object" value={capsule.suiDocumentId} />}
           {capsule.suiPurchaseId && <Metadata label="Sui purchase object" value={capsule.suiPurchaseId} />}

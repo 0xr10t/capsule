@@ -12,6 +12,7 @@
     "@capsule/sdk-typescript": "0.1.0",
     "@capsule/shared-types": "0.1.0",
     "@mysten/dapp-kit": "^1.0.6",
+    "@mysten/seal": "^1.1.3",
     "@mysten/sui": "^2.17.0",
     "@tanstack/react-query": "^5.76.1",
     "react": "^18.3.1",

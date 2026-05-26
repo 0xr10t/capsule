@@ -74,10 +74,44 @@ export interface DisclosureCapsule {
 export interface StoredCapsule {
   capsule: DisclosureCapsule;
   capsuleBlobId: BlobId;
+  sealProtected?: boolean;
   walrusBlobObjectId?: string;
   suiDisclosureId?: string;
   disclosureTx?: string;
 }
+
+export interface CapsuleSummary {
+  capsuleId: string;
+  documentId: string;
+  rootHash: HexHash;
+  lineRange: LineRange;
+  createdAt: string;
+  paymentTx: string;
+  suiPurchaseId: string;
+  buyer: string;
+  publisher: string;
+  suiDocumentId?: string;
+}
+
+export interface SealedCapsuleEnvelope {
+  version: "1";
+  algorithm: "SEAL";
+  packageId: string;
+  identity: string;
+  encryptedObject: string;
+  suiPurchaseId: string;
+}
+
+export interface SealedStoredCapsule {
+  summary: CapsuleSummary;
+  sealedCapsule: SealedCapsuleEnvelope;
+  capsuleBlobId: BlobId;
+  walrusBlobObjectId?: string;
+  suiDisclosureId?: string;
+  disclosureTx?: string;
+}
+
+export type CapsuleRecord = StoredCapsule | SealedStoredCapsule;
 
 export interface PublishDocumentRequest {
   title: string;

@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import cors from "cors";
 import { config } from "dotenv";
 import express from "express";
-import type { DocumentListing, PurchaseReceipt, StoredCapsule } from "@capsule/shared-types";
+import type { CapsuleRecord, DocumentListing, PurchaseReceipt } from "@capsule/shared-types";
 import { z } from "zod";
 import { MarketplaceStore } from "./store.js";
 
@@ -118,8 +118,9 @@ app.get("/purchases/:id", (request, response) => {
 });
 
 app.post("/internal/capsules", (request, response) => {
-  const stored = request.body as StoredCapsule;
-  if (!stored?.capsule?.capsuleId || !stored.capsuleBlobId) {
+  const stored = request.body as CapsuleRecord;
+  const capsuleId = "capsule" in stored ? stored.capsule?.capsuleId : stored.summary?.capsuleId;
+  if (!capsuleId || !stored.capsuleBlobId) {
     response.status(400).json({ error: "Invalid capsule record" });
     return;
   }
