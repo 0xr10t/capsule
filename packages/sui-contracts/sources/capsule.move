@@ -43,6 +43,7 @@ public struct Purchase has key, store {
 public struct Disclosure has key, store {
     id: UID,
     document_id: ID,
+    purchase_id: ID,
     buyer: address,
     line_start: u64,
     line_end: u64,
@@ -57,6 +58,7 @@ public struct DocumentRegistered has copy, drop {
 
 public struct DisclosureRecorded has copy, drop {
     document_id: ID,
+    purchase_id: ID,
     disclosure_id: ID,
     buyer: address,
     line_start: u64,
@@ -158,12 +160,14 @@ public entry fun record_disclosure(
     assert!(!purchase.consumed, EPurchaseConsumed);
     purchase.consumed = true;
 
+    let purchase_id = object::id(purchase);
     let buyer = purchase.buyer;
     let line_start = purchase.line_start;
     let line_end = purchase.line_end;
     let disclosure = Disclosure {
         id: object::new(ctx),
         document_id,
+        purchase_id,
         buyer,
         line_start,
         line_end,
@@ -173,6 +177,7 @@ public entry fun record_disclosure(
     let disclosure_id = object::id(&disclosure);
     event::emit(DisclosureRecorded {
         document_id,
+        purchase_id,
         disclosure_id,
         buyer,
         line_start,
@@ -191,6 +196,18 @@ public fun walrus_blob_id(document: &Document): &vector<u8> {
 
 public fun purchase_consumed(purchase: &Purchase): bool {
     purchase.consumed
+}
+
+public fun purchase_buyer(purchase: &Purchase): address {
+    purchase.buyer
+}
+
+public fun purchase_document_id(purchase: &Purchase): ID {
+    purchase.document_id
+}
+
+public fun purchase_bounds(purchase: &Purchase): (u64, u64) {
+    (purchase.line_start, purchase.line_end)
 }
 
 public fun disclosure_blob_id(disclosure: &Disclosure): &vector<u8> {

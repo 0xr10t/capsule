@@ -11,7 +11,7 @@ function PurchasePanel({ listing }: { listing: DocumentListing }) {
   const account = useCurrentAccount();
   const suiClient = useSuiClient();
   const packageId = import.meta.env.VITE_CAPSULE_PACKAGE_ID as string | undefined;
-  const isOnChainPurchase = Boolean(listing.suiDocumentId && packageId);
+  const isAnchoredListing = Boolean(listing.suiDocumentId);
   const walletTransaction = useSignAndExecuteTransaction({
     execute: async ({ bytes, signature }) =>
       suiClient.executeTransactionBlock({
@@ -26,19 +26,22 @@ function PurchasePanel({ listing }: { listing: DocumentListing }) {
   const mutation = useMutation({
     mutationFn: async (purchase: PurchaseRequest) => {
       let authorizedPurchase = purchase;
-      if (isOnChainPurchase) {
-        if (!account || !listing.suiDocumentId || !packageId) {
+      if (isAnchoredListing) {
+        if (!packageId) {
+          throw new Error("Configure VITE_CAPSULE_PACKAGE_ID before purchasing anchored disclosures.");
+        }
+        if (!account || !listing.suiDocumentId) {
           throw new Error("Connect a Sui wallet to purchase this anchored disclosure.");
         }
-        const amountMist = BigInt(end - start + 1) * BigInt(listing.pricePerLineMist);
+        const amountMist = BigInt(purchase.range.end - purchase.range.start + 1) * BigInt(listing.pricePerLineMist);
         const transaction = new Transaction();
         const [payment] = transaction.splitCoins(transaction.gas, [transaction.pure.u64(amountMist)]);
         transaction.moveCall({
           target: `${packageId}::capsule::purchase_range`,
           arguments: [
             transaction.object(listing.suiDocumentId),
-            transaction.pure.u64(start - 1),
-            transaction.pure.u64(end - 1),
+            transaction.pure.u64(purchase.range.start),
+            transaction.pure.u64(purchase.range.end),
             payment,
             transaction.object.clock(),
           ],
@@ -73,7 +76,7 @@ function PurchasePanel({ listing }: { listing: DocumentListing }) {
         event.preventDefault();
         mutation.mutate({
           documentId: listing.id,
-          buyer: isOnChainPurchase && account ? account.address : buyer,
+          buyer: isAnchoredListing && account ? account.address : buyer,
           range: { start: start - 1, end: end - 1 },
         });
       }}
@@ -82,8 +85,8 @@ function PurchasePanel({ listing }: { listing: DocumentListing }) {
         <label className="field grow">
           Buyer or agent
           <input
-            disabled={isOnChainPurchase}
-            value={isOnChainPurchase ? account?.address ?? "Connect wallet to purchase" : buyer}
+            disabled={isAnchoredListing}
+            value={isAnchoredListing ? account?.address ?? "Connect wallet to purchase" : buyer}
             onChange={(event) => setBuyer(event.target.value)}
             required
           />
@@ -109,16 +112,16 @@ function PurchasePanel({ listing }: { listing: DocumentListing }) {
           />
         </label>
       </div>
-      <button className="primary-button" disabled={mutation.isPending || (isOnChainPurchase && !account)} type="submit">
+      <button className="primary-button" disabled={mutation.isPending || (isAnchoredListing && !account)} type="submit">
         {mutation.isPending
           ? "Building verified capsule..."
-          : isOnChainPurchase
+          : isAnchoredListing
             ? account
               ? "Pay on Sui and disclose"
               : "Connect wallet to purchase"
             : "Buy selected lines"}
       </button>
-      {isOnChainPurchase && (
+      {isAnchoredListing && (
         <p className="text-xs leading-5 text-slate-400">
           Payment is signed in your wallet and creates a public one-use Sui purchase receipt.
         </p>
