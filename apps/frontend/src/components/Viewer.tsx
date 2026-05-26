@@ -45,7 +45,7 @@ export function Viewer() {
           <Metadata label="Proof leaves" value={String(capsule.proof.proofs.length)} />
           {verification.data && (
             <div className={`verification ${verification.data.valid ? "valid" : "invalid"}`}>
-              {verification.data.valid ? "Authenticity verified" : "Verification failed"}
+              {verification.data.valid ? "Inclusion proof verified" : "Verification failed"}
             </div>
           )}
         </article>

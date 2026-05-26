@@ -152,6 +152,34 @@ export async function verifyRangeProof(
 }
 
 export async function verifyCapsule(capsule: DisclosureCapsule): Promise<VerifyResult> {
-  return verifyRangeProof(capsule.disclosedContent, capsule.proof, capsule.rootHash);
+  const inclusion = await verifyRangeProof(capsule.disclosedContent, capsule.proof, capsule.rootHash);
+  if (!inclusion.valid) {
+    return inclusion;
+  }
+  const { signature, signerPublicKey, ...unsignedCapsule } = capsule;
+  try {
+    const pemPayload = signerPublicKey
+      .replace("-----BEGIN PUBLIC KEY-----", "")
+      .replace("-----END PUBLIC KEY-----", "")
+      .replace(/\s/g, "");
+    const publicKey = await globalThis.crypto.subtle.importKey(
+      "spki",
+      Uint8Array.from(globalThis.atob(pemPayload), (character) => character.charCodeAt(0)),
+      { name: "Ed25519" },
+      false,
+      ["verify"],
+    );
+    const signatureValid = await globalThis.crypto.subtle.verify(
+      { name: "Ed25519" },
+      publicKey,
+      Uint8Array.from(globalThis.atob(signature), (character) => character.charCodeAt(0)),
+      encoder.encode(JSON.stringify(unsignedCapsule)),
+    );
+    if (!signatureValid) {
+      return { ...inclusion, valid: false, reason: "Capsule attestation signature is invalid" };
+    }
+  } catch {
+    return { ...inclusion, valid: false, reason: "Capsule attestation cannot be validated" };
+  }
+  return inclusion;
 }
-

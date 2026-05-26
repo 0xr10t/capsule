@@ -7,6 +7,7 @@ coverage
 .DS_Store
 target
 pkg
+pkg-*
 packages/sui-contracts/build
 .idea
 .vscode

@@ -19,7 +19,8 @@ npm run dev
 5. The proof capsule viewer reveals only those lines and shows its blob ID,
    committed root, payment reference, and proof count.
 6. Choose **Verify locally**. The browser recomputes proof paths and reports
-   **Authenticity verified**.
+   **Inclusion proof verified**, including validation of the host's signed
+   capsule attestation.
 7. Visit **Capsules** to show that the disclosure artifact is reusable by an
    auditor or an AI ingestion pipeline.
 
@@ -34,4 +35,3 @@ npm run dev
 The Move functions are available for document and disclosure provenance. The
 UI transaction calls remain deliberately labeled as future testnet wiring until
 the wallet flow records returned object IDs back into marketplace metadata.
-

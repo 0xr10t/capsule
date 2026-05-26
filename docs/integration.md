@@ -33,6 +33,11 @@ root/blob inputs for these calls. Transaction submission and object-ID
 reconciliation are the next testnet wiring step; no demo screen falsely claims
 that memory-backed blobs were anchored on chain.
 
+The local viewer validates both the disclosed-line Merkle paths and the
+disclosure host's Ed25519 attestation. It reports an inclusion proof rather
+than claiming on-chain authenticity until it can resolve the capsule root
+against a published `Document` object on Sui.
+
 ## MVP Trust Statement
 
 Capsule proves content inclusion without revealing the full document. In this
@@ -43,4 +48,3 @@ key custody and payment authorization are not yet decentralized.
 Production hardening should add an authenticated purchaser session, durable
 encrypted key custody or threshold release, and Move-enforced payment before
 provenance is emitted.
-

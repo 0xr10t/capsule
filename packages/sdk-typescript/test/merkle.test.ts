@@ -1,5 +1,7 @@
+import { generateKeyPairSync, sign } from "node:crypto";
+import type { DisclosureCapsule } from "@capsule/shared-types";
 import { describe, expect, it } from "vitest";
-import { buildMerkleTree, generateRangeProof, splitLines, verifyRangeProof } from "../src/merkle.js";
+import { buildMerkleTree, generateRangeProof, splitLines, verifyCapsule, verifyRangeProof } from "../src/merkle.js";
 
 const lines = ["alpha", "beta", "gamma", "delta", "epsilon"];
 
@@ -22,5 +24,35 @@ describe("Capsule merkle proofs", () => {
 
   it("normalizes publisher line endings", () => {
     expect(splitLines("one\r\ntwo\nthree")).toEqual(["one", "two", "three"]);
+  });
+
+  it("validates disclosure host attestation signatures", async () => {
+    const proof = await generateRangeProof(lines, 1, 2);
+    const { rootHash } = await buildMerkleTree(lines);
+    const keys = generateKeyPairSync("ed25519");
+    const unsigned = {
+      version: "1" as const,
+      capsuleId: "capsule-fixture",
+      documentId: "document-fixture",
+      documentBlobId: "blob-fixture",
+      rootHash,
+      lineRange: { start: 1, end: 2 },
+      disclosedContent: lines.slice(1, 3),
+      proof,
+      createdAt: "2026-05-26T00:00:00.000Z",
+      paymentTx: "0xtx",
+      buyer: "0xbuyer",
+      publisher: "0xpublisher",
+    };
+    const capsule: DisclosureCapsule = {
+      ...unsigned,
+      signature: sign(null, Buffer.from(JSON.stringify(unsigned)), keys.privateKey).toString("base64"),
+      signerPublicKey: keys.publicKey.export({ format: "pem", type: "spki" }).toString(),
+    };
+    expect(await verifyCapsule(capsule)).toMatchObject({ valid: true });
+    expect(await verifyCapsule({ ...capsule, signature: Buffer.alloc(64).toString("base64") })).toMatchObject({
+      valid: false,
+      reason: "Capsule attestation signature is invalid",
+    });
   });
 });
