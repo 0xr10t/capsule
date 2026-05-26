@@ -1,0 +1,27 @@
+{
+  "name": "capsule",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Walrus-native verifiable knowledge exchange infrastructure",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @capsule/shared-types && npm run build -w @capsule/sdk-typescript && npm run build -w @capsule/marketplace-api && npm run build -w @capsule/disclosure-host && npm run build -w @capsule/frontend",
+    "dev": "concurrently -n marketplace,host,web -c blue,magenta,green \"npm run dev -w @capsule/marketplace-api\" \"npm run dev -w @capsule/disclosure-host\" \"npm run dev -w @capsule/frontend\"",
+    "test": "npm run test -w @capsule/sdk-typescript && npm run test -w @capsule/proof-engine-rust",
+    "check": "npm run build && npm run test",
+    "move:build": "cd packages/sui-contracts && sui move build",
+    "wasm:node": "cd packages/proof-engine-rust && wasm-pack build --target nodejs --out-dir pkg-node",
+    "wasm:web": "cd packages/proof-engine-rust && wasm-pack build --target web --out-dir pkg-web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+
