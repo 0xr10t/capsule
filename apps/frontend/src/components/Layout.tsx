@@ -22,7 +22,6 @@ export function Layout({ children }: { children: ReactNode }) {
             </span>
             <span className="text-left">
               <span className="block font-semibold tracking-tight">Capsule</span>
-              <span className="block text-xs text-slate-400">DisseK Protocol</span>
             </span>
           </button>
           <nav className="hidden items-center gap-1 rounded-full border border-white/8 bg-white/[0.03] p-1 md:flex">

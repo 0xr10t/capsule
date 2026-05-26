@@ -1,8 +1,8 @@
-# Capsule / DisseK
+# Capsule 
 
 > Walrus-native selective disclosure for verifiable AI knowledge exchange.
 
-**Capsule**, also described as **DisseK**, is a protocol and marketplace demo
+**Capsule** is a protocol and marketplace demo
 built for the Walrus track of Sui Overflow 2026. Publishers encrypt documents,
 commit their line-level Merkle roots on Sui, and disclose only purchased
 fragments. Buyers and AI agents receive durable Walrus capsules containing the
