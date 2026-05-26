@@ -10,6 +10,16 @@ export interface ChainRecord {
   transactionDigest: string;
 }
 
+export interface ChainPurchase {
+  documentId: string;
+  buyer: string;
+  lineStart: number;
+  lineEnd: number;
+  amountMist: string;
+  paymentTx: string;
+  consumed: boolean;
+}
+
 function configuredSigner(secretKey: string): Signer {
   switch (decodeSuiPrivateKey(secretKey).scheme) {
     case "ED25519":
@@ -51,6 +61,21 @@ function fieldBytes(value: unknown): Uint8Array {
   throw new Error("Sui document root has an unexpected representation");
 }
 
+function stringField(value: unknown, label: string): string {
+  if (typeof value === "string") {
+    return value;
+  }
+  throw new Error(`Sui Purchase contains an unreadable ${label}`);
+}
+
+function numberField(value: unknown, label: string): number {
+  const parsed = typeof value === "string" || typeof value === "number" ? Number(value) : Number.NaN;
+  if (Number.isSafeInteger(parsed) && parsed >= 0) {
+    return parsed;
+  }
+  throw new Error(`Sui Purchase contains an unreadable ${label}`);
+}
+
 export class SuiAnchorProvider {
   readonly address: string;
   private readonly client: SuiJsonRpcClient;
@@ -66,13 +91,20 @@ export class SuiAnchorProvider {
     });
   }
 
-  async registerDocument(rootHash: string, walrusBlobId: string): Promise<ChainRecord> {
+  async registerDocument(
+    rootHash: string,
+    walrusBlobId: string,
+    lineCount: number,
+    pricePerLineMist: string,
+  ): Promise<ChainRecord> {
     const transaction = new Transaction();
     transaction.moveCall({
       target: `${this.packageId}::capsule::register_document`,
       arguments: [
         transaction.pure.vector("u8", rootBytes(rootHash)),
         transaction.pure.vector("u8", bytes(walrusBlobId)),
+        transaction.pure.u64(lineCount),
+        transaction.pure.u64(pricePerLineMist),
         transaction.object.clock(),
       ],
     });
@@ -92,9 +124,7 @@ export class SuiAnchorProvider {
 
   async recordDisclosure(
     documentId: string,
-    buyer: string,
-    lineStart: number,
-    lineEnd: number,
+    purchaseId: string,
     capsuleBlobId: string,
   ): Promise<ChainRecord> {
     const transaction = new Transaction();
@@ -102,9 +132,7 @@ export class SuiAnchorProvider {
       target: `${this.packageId}::capsule::record_disclosure`,
       arguments: [
         transaction.object(documentId),
-        transaction.pure.address(buyer),
-        transaction.pure.u64(lineStart),
-        transaction.pure.u64(lineEnd),
+        transaction.object(purchaseId),
         transaction.pure.vector("u8", bytes(capsuleBlobId)),
         transaction.object.clock(),
       ],
@@ -120,6 +148,37 @@ export class SuiAnchorProvider {
     return {
       objectId: requiredObjectId(result.objectChanges, `${this.packageId}::capsule::Disclosure`),
       transactionDigest: result.digest,
+    };
+  }
+
+  async purchase(purchaseId: string): Promise<ChainPurchase> {
+    const result = await this.client.getObject({
+      id: purchaseId,
+      options: { showContent: true, showType: true, showPreviousTransaction: true },
+    });
+    const content = result.data?.content;
+    if (!content || content.dataType !== "moveObject" || content.type !== `${this.packageId}::capsule::Purchase`) {
+      throw new Error("Sui payment receipt is not a Capsule Purchase object");
+    }
+    const fields = content.fields as {
+      document_id?: unknown;
+      buyer?: unknown;
+      line_start?: unknown;
+      line_end?: unknown;
+      amount_mist?: unknown;
+      consumed?: unknown;
+    };
+    if (typeof fields.consumed !== "boolean") {
+      throw new Error("Sui Purchase contains an unreadable consumption status");
+    }
+    return {
+      documentId: stringField(fields.document_id, "document ID"),
+      buyer: stringField(fields.buyer, "buyer"),
+      lineStart: numberField(fields.line_start, "line start"),
+      lineEnd: numberField(fields.line_end, "line end"),
+      amountMist: stringField(fields.amount_mist, "amount"),
+      paymentTx: stringField(result.data?.previousTransaction, "payment transaction"),
+      consumed: fields.consumed,
     };
   }
 

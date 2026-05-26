@@ -43,6 +43,7 @@ export function Viewer() {
           <Metadata label="Capsule blob" value={stored.capsuleBlobId} />
           <Metadata label="Committed root" value={capsule.rootHash} />
           {capsule.suiDocumentId && <Metadata label="Sui document object" value={capsule.suiDocumentId} />}
+          {capsule.suiPurchaseId && <Metadata label="Sui purchase object" value={capsule.suiPurchaseId} />}
           {stored.suiDisclosureId && <Metadata label="Sui disclosure object" value={stored.suiDisclosureId} />}
           <Metadata label="Payment transaction" value={capsule.paymentTx} />
           <Metadata label="Proof leaves" value={String(capsule.proof.proofs.length)} />

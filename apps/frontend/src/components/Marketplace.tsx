@@ -1,4 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
+import { Transaction } from "@mysten/sui/transactions";
 import type { DocumentListing, PurchaseRequest } from "@capsule/shared-types";
 import { useState } from "react";
 import { capsuleClient } from "../lib/client";
@@ -6,12 +8,59 @@ import { useCapsuleStore } from "../lib/store";
 
 function PurchasePanel({ listing }: { listing: DocumentListing }) {
   const selectCapsule = useCapsuleStore((state) => state.selectCapsule);
+  const account = useCurrentAccount();
+  const suiClient = useSuiClient();
+  const packageId = import.meta.env.VITE_CAPSULE_PACKAGE_ID as string | undefined;
+  const isOnChainPurchase = Boolean(listing.suiDocumentId && packageId);
+  const walletTransaction = useSignAndExecuteTransaction({
+    execute: async ({ bytes, signature }) =>
+      suiClient.executeTransactionBlock({
+        transactionBlock: bytes,
+        signature,
+        options: { showRawEffects: true, showEffects: true, showObjectChanges: true },
+      }),
+  });
   const [buyer, setBuyer] = useState("0xai-agent-demo");
   const [start, setStart] = useState(1);
   const [end, setEnd] = useState(Math.min(2, listing.lineCount));
   const mutation = useMutation({
     mutationFn: async (purchase: PurchaseRequest) => {
-      const receipt = await capsuleClient.purchaseDisclosure(purchase);
+      let authorizedPurchase = purchase;
+      if (isOnChainPurchase) {
+        if (!account || !listing.suiDocumentId || !packageId) {
+          throw new Error("Connect a Sui wallet to purchase this anchored disclosure.");
+        }
+        const amountMist = BigInt(end - start + 1) * BigInt(listing.pricePerLineMist);
+        const transaction = new Transaction();
+        const [payment] = transaction.splitCoins(transaction.gas, [transaction.pure.u64(amountMist)]);
+        transaction.moveCall({
+          target: `${packageId}::capsule::purchase_range`,
+          arguments: [
+            transaction.object(listing.suiDocumentId),
+            transaction.pure.u64(start - 1),
+            transaction.pure.u64(end - 1),
+            payment,
+            transaction.object.clock(),
+          ],
+        });
+        const execution = await walletTransaction.mutateAsync({
+          transaction,
+          chain: import.meta.env.VITE_SUI_NETWORK === "mainnet" ? "sui:mainnet" : "sui:testnet",
+        });
+        const createdPurchase = execution.objectChanges?.find(
+          (change) => change.type === "created" && change.objectType === `${packageId}::capsule::Purchase`,
+        );
+        if (!createdPurchase || createdPurchase.type !== "created") {
+          throw new Error("Sui payment succeeded without creating a Capsule Purchase receipt.");
+        }
+        authorizedPurchase = {
+          ...purchase,
+          buyer: account.address,
+          paymentTx: execution.digest,
+          suiPurchaseId: createdPurchase.objectId,
+        };
+      }
+      const receipt = await capsuleClient.purchaseDisclosure(authorizedPurchase);
       return capsuleClient.createDisclosure({ purchaseId: receipt.id });
     },
     onSuccess: selectCapsule,
@@ -24,7 +73,7 @@ function PurchasePanel({ listing }: { listing: DocumentListing }) {
         event.preventDefault();
         mutation.mutate({
           documentId: listing.id,
-          buyer,
+          buyer: isOnChainPurchase && account ? account.address : buyer,
           range: { start: start - 1, end: end - 1 },
         });
       }}
@@ -32,7 +81,12 @@ function PurchasePanel({ listing }: { listing: DocumentListing }) {
       <div className="flex gap-3">
         <label className="field grow">
           Buyer or agent
-          <input value={buyer} onChange={(event) => setBuyer(event.target.value)} required />
+          <input
+            disabled={isOnChainPurchase}
+            value={isOnChainPurchase ? account?.address ?? "Connect wallet to purchase" : buyer}
+            onChange={(event) => setBuyer(event.target.value)}
+            required
+          />
         </label>
         <label className="field w-20">
           From
@@ -55,9 +109,20 @@ function PurchasePanel({ listing }: { listing: DocumentListing }) {
           />
         </label>
       </div>
-      <button className="primary-button" disabled={mutation.isPending} type="submit">
-        {mutation.isPending ? "Building verified capsule..." : "Buy selected lines"}
+      <button className="primary-button" disabled={mutation.isPending || (isOnChainPurchase && !account)} type="submit">
+        {mutation.isPending
+          ? "Building verified capsule..."
+          : isOnChainPurchase
+            ? account
+              ? "Pay on Sui and disclose"
+              : "Connect wallet to purchase"
+            : "Buy selected lines"}
       </button>
+      {isOnChainPurchase && (
+        <p className="text-xs leading-5 text-slate-400">
+          Payment is signed in your wallet and creates a public one-use Sui purchase receipt.
+        </p>
+      )}
       {mutation.error && <p className="text-sm text-rose-300">{mutation.error.message}</p>}
     </form>
   );

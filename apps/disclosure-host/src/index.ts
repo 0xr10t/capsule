@@ -67,7 +67,9 @@ app.post("/documents/upload", async (request, response) => {
     const merkle = await buildMerkleTree(lines);
     const encrypted = encryptDocument(input.content);
     const blob = await storage.uploadBlob(Buffer.from(JSON.stringify(encrypted.envelope)));
-    const chainRecord = sui ? await sui.registerDocument(merkle.rootHash, blob.blobId) : undefined;
+    const chainRecord = sui
+      ? await sui.registerDocument(merkle.rootHash, blob.blobId, lines.length, input.pricePerLineMist)
+      : undefined;
     const listing: DocumentListing = {
       id: randomUUID(),
       title: input.title,
@@ -99,6 +101,25 @@ app.post("/disclosure/generate", async (request, response) => {
     const { purchaseId } = z.object({ purchaseId: z.string().min(1) }).parse(request.body);
     const purchase = await marketplaceRequest<PurchaseReceipt>(`/purchases/${purchaseId}`);
     const listing = await marketplaceRequest<DocumentListing>(`/documents/${purchase.documentId}`);
+    if (sui && listing.suiDocumentId) {
+      if (!purchase.suiPurchaseId) {
+        throw new Error("An on-chain Sui Purchase object is required before disclosure");
+      }
+      const chainPurchase = await sui.purchase(purchase.suiPurchaseId);
+      if (
+        chainPurchase.documentId !== listing.suiDocumentId ||
+        chainPurchase.buyer !== purchase.buyer ||
+        chainPurchase.lineStart !== purchase.range.start ||
+        chainPurchase.lineEnd !== purchase.range.end ||
+        chainPurchase.amountMist !== purchase.amountMist ||
+        chainPurchase.paymentTx !== purchase.paymentTx
+      ) {
+        throw new Error("Sui Purchase object does not authorize this disclosure request");
+      }
+      if (chainPurchase.consumed) {
+        throw new Error("Sui Purchase object has already been disclosed");
+      }
+    }
     const key = documentKeys.get(listing.id);
     if (!key) {
       throw new Error("Publisher key is not loaded by this disclosure host");
@@ -122,6 +143,7 @@ app.post("/disclosure/generate", async (request, response) => {
       proof,
       createdAt: new Date().toISOString(),
       paymentTx: purchase.paymentTx,
+      suiPurchaseId: purchase.suiPurchaseId,
       buyer: purchase.buyer,
       publisher: listing.publisher,
       suiDocumentId: listing.suiDocumentId,
@@ -131,9 +153,7 @@ app.post("/disclosure/generate", async (request, response) => {
     const chainRecord = sui && listing.suiDocumentId
       ? await sui.recordDisclosure(
           listing.suiDocumentId,
-          purchase.buyer,
-          purchase.range.start,
-          purchase.range.end,
+          purchase.suiPurchaseId!,
           capsuleBlob.blobId,
         )
       : undefined;

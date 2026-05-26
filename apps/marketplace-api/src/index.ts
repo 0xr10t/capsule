@@ -39,6 +39,7 @@ const purchaseSchema = z.object({
   buyer: z.string().min(1),
   range: rangeSchema,
   paymentTx: z.string().optional(),
+  suiPurchaseId: z.string().optional(),
 });
 
 app.use(cors());
@@ -87,6 +88,11 @@ app.post("/purchase", (request, response) => {
     response.status(400).json({ error: "Purchased range is outside this document" });
     return;
   }
+  const requiresChainPayment = process.env.PROTOCOL_MODE === "testnet" && Boolean(listing.suiDocumentId);
+  if (requiresChainPayment && (!result.data.paymentTx || !result.data.suiPurchaseId)) {
+    response.status(400).json({ error: "Testnet disclosures require an on-chain Sui purchase receipt" });
+    return;
+  }
   const selectedLines = BigInt(result.data.range.end - result.data.range.start + 1);
   const receipt: PurchaseReceipt = {
     id: randomUUID(),
@@ -95,6 +101,7 @@ app.post("/purchase", (request, response) => {
     range: result.data.range,
     amountMist: (selectedLines * BigInt(listing.pricePerLineMist)).toString(),
     paymentTx: result.data.paymentTx ?? `demo-payment-${randomUUID()}`,
+    suiPurchaseId: result.data.suiPurchaseId,
     createdAt: new Date().toISOString(),
   };
   store.addPurchase(receipt);

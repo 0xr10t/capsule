@@ -29,6 +29,7 @@ export interface PurchaseReceipt {
   range: LineRange;
   amountMist: string;
   paymentTx: string;
+  suiPurchaseId?: string;
   createdAt: string;
 }
 
@@ -63,6 +64,7 @@ export interface DisclosureCapsule {
   signature: string;
   signerPublicKey: string;
   paymentTx: string;
+  suiPurchaseId?: string;
   buyer: string;
   publisher: string;
   suiDocumentId?: string;
@@ -91,6 +93,7 @@ export interface PurchaseRequest {
   buyer: string;
   range: LineRange;
   paymentTx?: string;
+  suiPurchaseId?: string;
 }
 
 export interface GenerateDisclosureRequest {
