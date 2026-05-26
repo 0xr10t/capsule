@@ -8,9 +8,10 @@ only the encrypted envelope. The disclosure host is the MVP key custodian:
 buyers do not obtain the document key and receive only purchased plaintext
 lines inside a disclosure capsule.
 
-For a production deployment, the host key vault and purchase authorization
-should be replaced with threshold key management or trusted execution backed
-key release. This limitation is explicit rather than disguised as full
+Payments are settled with a Sui `Purchase` object consumed when disclosure is
+recorded. For a production deployment, the remaining host key vault should be
+replaced with Seal-gated encrypted disclosure units or another threshold-backed
+key release model. This limitation is explicit rather than disguised as full
 decentralization.
 
 ## Data Flow
@@ -21,11 +22,12 @@ flowchart LR
   H -->|"AES-256-GCM encrypted document"| W["Walrus"]
   H -->|"root and blob ID"| S["Sui Document object"]
   H -->|"public listing metadata"| M["Marketplace API"]
-  B["Buyer / AI Agent"] -->|"purchase line range"| M
-  M -->|"receipt"| H
+  B["Buyer / AI Agent"] -->|"pay SUI for line range"| S
+  S -->|"Purchase receipt"| M
+  M -->|"paid reference"| H
   H -->|"read encrypted blob and decrypt"| W
   H -->|"capsule with lines and proof"| W
-  H -->|"disclosure provenance"| S
+  H -->|"consume Purchase and record disclosure"| S
   B -->|"fetch and locally verify capsule"| W
 ```
 
@@ -56,4 +58,3 @@ An agent can list documents, purchase an approved range, receive a JSON capsule,
 verify it locally using the SDK or WASM proof engine, and feed only verified
 content into retrieval pipelines. Capsule JSON is deliberately stable and
 machine-readable.
-

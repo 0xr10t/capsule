@@ -32,15 +32,19 @@ testnet and Sui testnet:
 
 | Item | Public identifier |
 | --- | --- |
-| Sui Move package | `0x4567219aa7d9e4704b6f73b8808b8a4442d61d1985d5d66b5591082626b978a7` |
-| Package publish transaction | `EsFCSjENtdR91iQ8E7DnJpERPUTAenmVPAzHyQC32hm8` |
-| Anchored Document object | `0xd128df2fe8e079ec426d03b4450236603d1774be5345b70ff8203c6b76408766` |
-| Recorded Disclosure object | `0xa7a46ad1c07e55c645cfe555a8017669a181c8c7a5b217ab237b5aceffa691f4` |
-| Encrypted source Walrus blob | `rCqpFjZYtwFv8BRsUFEKyEJAuK4I4xr503Qq_rJpREY` |
-| Disclosure capsule Walrus blob | `BcM_Rv_crbWO8jZGjSORC74MxhffppH0MnBSticlcK4` |
+| Sui Move package | `0xf71a6439bfe12645e47713e824b0c1f43f112ee187ed3510f4c155a10c01ba4d` |
+| Package publish transaction | `6KiCJCnMGp5fyBxo3Tq83VQ1fwzZCc27xVnVEwqhH17a` |
+| Anchored Document object | `0x19ac994787ee5d97f6c5777b3a841c9c08ea1fe1110b32da637d109c622c2b1d` |
+| Paid Purchase object | `0xbe4cb2bd02e9c5abc27344c0e44cee0d67f1dd6f79b6138b1d8d672e6a99513b` |
+| Payment transaction | `Hbe8Ly6XHppAYxicRBikuYFMcfGMUdefvBCo8a9bXvcG` |
+| Recorded Disclosure object | `0x16bcf76f62f5aa3d85777a37cbca8feb2087298a1d144b1fcfe554fc38800e88` |
+| Encrypted source Walrus blob | `yGhgDDaqfqo7SMMGnB_VOni1RVKuiIJLQAOmOSfMGJI` |
+| Disclosure capsule Walrus blob | `jGYfs8xE6f6PHozmvJey6QTQiMhM3IiObLFqo9ShZZc` |
 
 The capsule was retrieved from Walrus and verified against its Sui-anchored
-root by both the API and the frontend. Full public artifacts are recorded in
+root by the API after a real `1,000,000` MIST purchase receipt was created and
+consumed on Sui. The recorded `Disclosure` stores the paid `Purchase` ID for
+direct provenance inspection. Full public artifacts are recorded in
 [`docs/testnet-validation.md`](docs/testnet-validation.md) and
 [`deployments/sui-testnet.json`](deployments/sui-testnet.json).
 
@@ -67,16 +71,19 @@ sequenceDiagram
     Host->>Market: Register metadata-only listing
 
     Buyer->>UI: Browse listing and select line range
-    UI->>Market: Purchase requested lines
-    Market-->>UI: Purchase receipt
+    UI->>Sui: purchase_range(document, range, SUI payment)
+    Sui-->>UI: Shared paid Purchase receipt
+    UI->>Market: Register purchase receipt metadata
+    Market-->>UI: Accepted purchase reference
     UI->>Host: Generate disclosure using receipt
+    Host->>Sui: Validate paid Purchase receipt
     Host->>Walrus: Retrieve encrypted source
     Host->>Host: Decrypt and verify committed root
     Host->>Host: Extract purchased lines and build proof
     Host->>Host: Sign disclosure capsule
     Host->>Walrus: Upload public capsule
     Walrus-->>Host: Capsule blob ID
-    Host->>Sui: record_disclosure(capsule reference)
+    Host->>Sui: record_disclosure(purchase, capsule reference)
     Sui-->>Host: Disclosure provenance object
     Host-->>UI: Capsule and blob ID
 
@@ -97,8 +104,9 @@ sequenceDiagram
 
 ### Buyer Or Agent Flow
 
-1. A buyer selects a line range from a listing.
-2. The disclosure host reads and decrypts the source, checks it against the
+1. A connected buyer selects a line range and signs an exact-price SUI
+   payment that creates a public, one-use `Purchase` receipt.
+2. The disclosure host validates that receipt, reads and decrypts the source, checks it against the
    committed root, and creates a proof for only the purchased lines.
 3. A signed disclosure capsule is uploaded to Walrus and recorded on Sui.
 4. The browser independently verifies the capsule proof and resolves the Sui
@@ -116,7 +124,8 @@ A public disclosure capsule is an immutable, replayable knowledge fragment:
   "lineRange": { "start": 199, "end": 249 },
   "disclosedContent": ["..."],
   "proof": {},
-  "paymentTx": "...",
+  "paymentTx": "sui-payment-transaction-digest",
+  "suiPurchaseId": "0x...",
   "signature": "..."
 }
 ```
@@ -161,12 +170,13 @@ The live testnet implementation currently proves:
 - Sui document-root anchoring and disclosure provenance;
 - local proof, signature, and on-chain-root verification.
 
-The current MVP does **not** yet implement on-chain purchase settlement. A
-purchase receipt authorizes the demo disclosure flow, and the testnet
-validation is labeled `demo-no-payment-settlement`. The disclosure host also
-holds document decryption keys in memory. Production hardening requires
-Move-enforced payment, durable encrypted key custody or threshold release, and
-authenticated buyer authorization.
+Testnet purchases now transfer exact-price SUI payments to the publisher and
+create a one-use shared receipt that must be consumed to record disclosure.
+The primary remaining trust boundary is encryption custody: the disclosure
+host still holds document decryption keys in memory. Production hardening
+requires Seal-compatible selective encryption or another trust-minimized key
+release design, plus durable marketplace persistence and authenticated
+production operations. See [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Run Locally
 
@@ -201,9 +211,9 @@ PROTOCOL_MODE=testnet
 STORAGE_DRIVER=walrus
 SUI_NETWORK=testnet
 SUI_PRIVATE_KEY=suiprivkey...
-SUI_PACKAGE_ID=0x4567219aa7d9e4704b6f73b8808b8a4442d61d1985d5d66b5591082626b978a7
+SUI_PACKAGE_ID=0xf71a6439bfe12645e47713e824b0c1f43f112ee187ed3510f4c155a10c01ba4d
 VITE_SUI_NETWORK=testnet
-VITE_CAPSULE_PACKAGE_ID=0x4567219aa7d9e4704b6f73b8808b8a4442d61d1985d5d66b5591082626b978a7
+VITE_CAPSULE_PACKAGE_ID=0xf71a6439bfe12645e47713e824b0c1f43f112ee187ed3510f4c155a10c01ba4d
 ```
 
 To publish a new contract package instead of using the recorded deployment:
@@ -230,3 +240,4 @@ npm run wasm:web
 - [Demo script](docs/demo.md)
 - [Walrus and Sui integration](docs/integration.md)
 - [Testnet validation record](docs/testnet-validation.md)
+- [Upgrade roadmap](docs/roadmap.md)

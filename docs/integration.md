@@ -28,13 +28,17 @@ The Move package in `packages/sui-contracts` defines:
 
 | Entry function | On-chain effect |
 | --- | --- |
-| `register_document` | Publishes a shared document commitment with root and encrypted blob ID |
-| `record_disclosure` | Transfers a capsule provenance object to the buyer |
+| `register_document` | Publishes a shared document commitment with root, encrypted blob ID, price, and line count |
+| `purchase_range` | Transfers exact-price SUI to the publisher and creates a shared one-use paid receipt |
+| `record_disclosure` | Consumes a paid receipt and transfers capsule provenance, including its purchase ID, to the buyer |
 
 When `PROTOCOL_MODE=testnet` is configured, the disclosure host signs and
-submits both Move transactions with `SUI_PRIVATE_KEY`, and stores the created
-Sui object IDs and transaction digests in public marketplace metadata. The key
-must remain server-only; it must never be supplied through a `VITE_` variable.
+submits document and disclosure transactions with `SUI_PRIVATE_KEY`. The
+buyer signs `purchase_range` from the connected wallet in the frontend. Before
+revealing content, the host resolves the public `Purchase` object and verifies
+its document, buyer, range, amount, and creation transaction digest. The
+publisher key must remain server-only; it must never be supplied through a
+`VITE_` variable.
 
 The viewer validates the disclosed-line Merkle paths and host attestation
 locally. For capsules that contain a Sui `Document` object ID, it additionally
@@ -58,10 +62,11 @@ and public package ID. Add that public ID to `SUI_PACKAGE_ID` and
 ## MVP Trust Statement
 
 Capsule proves content inclusion without revealing the full document. The
-testnet path now anchors roots and disclosures on Sui, but the disclosure host
-temporarily holds publisher encryption keys and is the only party able to
-release purchased lines. Payment authorization is still not decentralized.
+testnet path anchors roots, enforces exact-price SUI purchase receipts, and
+records disclosures on Sui, but the disclosure host temporarily holds
+publisher encryption keys and is the only party able to assemble purchased
+lines.
 
 Production hardening should add an authenticated purchaser session, durable
-encrypted key custody or threshold release, and Move-enforced payment before
-provenance is emitted.
+encrypted key custody or selective Seal policy release, and durable metadata
+storage.

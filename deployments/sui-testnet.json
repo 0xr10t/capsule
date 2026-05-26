@@ -1,16 +1,28 @@
 {
   "network": "testnet",
   "validatedAt": "2026-05-26",
-  "packageId": "0x4567219aa7d9e4704b6f73b8808b8a4442d61d1985d5d66b5591082626b978a7",
+  "packageId": "0xf71a6439bfe12645e47713e824b0c1f43f112ee187ed3510f4c155a10c01ba4d",
   "publisher": "0x36d11715f9de629020e20901ce473a8d44d23609c948999175a1673d183eaf21",
-  "publishTransaction": "EsFCSjENtdR91iQ8E7DnJpERPUTAenmVPAzHyQC32hm8",
+  "publishTransaction": "6KiCJCnMGp5fyBxo3Tq83VQ1fwzZCc27xVnVEwqhH17a",
+  "previousPaidPackageId": "0xafd35495751db2d8e19d9af79570554632b29d9beb578d6e891b46a6bcf8b85d",
+  "capabilities": [
+    "document-root-anchoring",
+    "paid-purchase-receipts",
+    "single-use-disclosure-authorization",
+    "disclosure-to-purchase-linkage"
+  ],
   "validation": {
-    "encryptedDocumentBlobId": "rCqpFjZYtwFv8BRsUFEKyEJAuK4I4xr503Qq_rJpREY",
-    "documentObjectId": "0xd128df2fe8e079ec426d03b4450236603d1774be5345b70ff8203c6b76408766",
-    "documentTransaction": "H2F49Xr85pdNXUgJ6FXPsZUhaA8tQTw77ddW1xrcUA4w",
-    "capsuleBlobId": "BcM_Rv_crbWO8jZGjSORC74MxhffppH0MnBSticlcK4",
-    "disclosureObjectId": "0xa7a46ad1c07e55c645cfe555a8017669a181c8c7a5b217ab237b5aceffa691f4",
-    "disclosureTransaction": "Chj1rUki8NENBs8Ps2zE7JwL7d1yCpCjcH7LKMkM7ENk",
+    "encryptedDocumentBlobId": "yGhgDDaqfqo7SMMGnB_VOni1RVKuiIJLQAOmOSfMGJI",
+    "documentObjectId": "0x19ac994787ee5d97f6c5777b3a841c9c08ea1fe1110b32da637d109c622c2b1d",
+    "documentTransaction": "CN1BYPJXtoBteuCVCNvU13anqZVbi33qjJBj7Hw3BQgV",
+    "purchaseObjectId": "0xbe4cb2bd02e9c5abc27344c0e44cee0d67f1dd6f79b6138b1d8d672e6a99513b",
+    "paymentTransaction": "Hbe8Ly6XHppAYxicRBikuYFMcfGMUdefvBCo8a9bXvcG",
+    "amountMist": "1000000",
+    "purchaseConsumed": true,
+    "capsuleBlobId": "jGYfs8xE6f6PHozmvJey6QTQiMhM3IiObLFqo9ShZZc",
+    "disclosureObjectId": "0x16bcf76f62f5aa3d85777a37cbca8feb2087298a1d144b1fcfe554fc38800e88",
+    "disclosureTransaction": "EzVZFU8cG1JNsaR6jU1euMCkpRYppyge3CwQaqeVETu3",
+    "disclosurePurchaseId": "0xbe4cb2bd02e9c5abc27344c0e44cee0d67f1dd6f79b6138b1d8d672e6a99513b",
     "anchoredVerification": true
   }
 }

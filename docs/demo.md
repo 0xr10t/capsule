@@ -34,8 +34,11 @@ npm run dev
 4. Set `PROTOCOL_MODE=testnet` and `STORAGE_DRIVER=walrus`.
 5. Configure the Walrus testnet publisher and aggregator endpoints if using a
    service provider other than the defaults.
-6. Run `npm run dev` and publish a small encrypted source document.
+6. Run `npm run dev`, connect a funded Sui testnet wallet, and publish a small
+   encrypted source document.
+7. Purchase a line range from the connected wallet. Approve the SUI payment
+   transaction; it creates an on-chain `Purchase` receipt.
 
-The resulting listing shows a Sui anchored document object; an issued capsule
-records a Sui disclosure object, and local verification resolves the document
-root from Sui before reporting an anchored result.
+The resulting listing shows a Sui anchored document object. An issued capsule
+records the paid purchase object and a Sui disclosure object; local verification
+resolves the document root from Sui before reporting an anchored result.
