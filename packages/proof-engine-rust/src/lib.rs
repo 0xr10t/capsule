@@ -179,11 +179,7 @@ pub fn build_merkle_tree(lines_json: &str) -> Result<String, JsValue> {
 }
 
 #[wasm_bindgen(js_name = generateRangeProof)]
-pub fn generate_range_proof(
-    lines_json: &str,
-    start: usize,
-    end: usize,
-) -> Result<String, JsValue> {
+pub fn generate_range_proof(lines_json: &str, start: usize, end: usize) -> Result<String, JsValue> {
     let proof =
         generate_proof(&parse_lines(lines_json)?, start, end).map_err(|e| JsValue::from_str(&e))?;
     serde_json::to_string(&proof).map_err(|error| JsValue::from_str(&error.to_string()))
@@ -241,4 +237,3 @@ mod tests {
         );
     }
 }
-
