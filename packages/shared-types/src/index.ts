@@ -132,6 +132,27 @@ export interface SealedStoredCapsule {
 
 export type CapsuleRecord = StoredCapsule | SealedStoredCapsule;
 
+export type ChainEntityType = "document" | "fragment" | "purchase" | "disclosure";
+export type ChainReconciliationStatus = "verified" | "mismatch" | "missing" | "error";
+
+export interface ChainReconciliationRecord {
+  entityType: ChainEntityType;
+  entityId: string;
+  suiObjectId: string;
+  status: ChainReconciliationStatus;
+  checkedAt: string;
+  transactionDigest?: string;
+  details?: string;
+}
+
+export interface ChainReconciliationSummary {
+  checkedAt: string;
+  checked: number;
+  verified: number;
+  failed: number;
+  records: ChainReconciliationRecord[];
+}
+
 export interface PrecomputedFragmentPayload {
   version: "1";
   rootHash: HexHash;

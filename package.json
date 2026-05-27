@@ -10,7 +10,7 @@
   "scripts": {
     "build": "npm run build -w @capsule/shared-types && npm run build -w @capsule/sdk-typescript && npm run build -w @capsule/marketplace-api && npm run build -w @capsule/disclosure-host && npm run build -w @capsule/frontend",
     "dev": "concurrently -n marketplace,host,web -c blue,magenta,green \"npm run dev -w @capsule/marketplace-api\" \"npm run dev -w @capsule/disclosure-host\" \"npm run dev -w @capsule/frontend\"",
-    "test": "npm run test -w @capsule/sdk-typescript && npm run test -w @capsule/disclosure-host && npm run test -w @capsule/proof-engine-rust",
+    "test": "npm run test -w @capsule/sdk-typescript && npm run test -w @capsule/marketplace-api && npm run test -w @capsule/disclosure-host && npm run test -w @capsule/proof-engine-rust",
     "check": "npm run build && npm run test",
     "move:build": "cd packages/sui-contracts && sui move build",
     "deploy:testnet": "node --import tsx scripts/deploy-sui-testnet.ts",

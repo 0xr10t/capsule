@@ -1,48 +1,38 @@
-CREATE TABLE publishers (
-  address TEXT PRIMARY KEY,
-  display_name TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+-- Public marketplace metadata only. The API also initializes these tables at startup.
+-- Encrypted payloads remain on Walrus; plaintext and Seal keys do not enter PostgreSQL.
+
+CREATE TABLE IF NOT EXISTS marketplace_documents (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL,
+  record JSONB NOT NULL
 );
 
-CREATE TABLE documents (
-  id UUID PRIMARY KEY,
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  publisher_address TEXT NOT NULL REFERENCES publishers(address),
-  category TEXT NOT NULL,
-  line_count INTEGER NOT NULL CHECK (line_count > 0),
-  root_hash CHAR(64) NOT NULL,
-  walrus_blob_id TEXT NOT NULL,
-  sui_document_id TEXT,
-  price_per_line_mist NUMERIC(40, 0) NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL
+CREATE TABLE IF NOT EXISTS marketplace_purchases (
+  id TEXT PRIMARY KEY,
+  document_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  record JSONB NOT NULL
 );
 
-CREATE TABLE sections (
-  id UUID PRIMARY KEY,
-  document_id UUID NOT NULL REFERENCES documents(id),
-  line_start INTEGER NOT NULL,
-  line_end INTEGER NOT NULL,
-  price_mist NUMERIC(40, 0) NOT NULL,
-  CHECK (line_start >= 0 AND line_start <= line_end)
+CREATE INDEX IF NOT EXISTS marketplace_purchases_document_idx
+  ON marketplace_purchases (document_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS marketplace_capsules (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL,
+  record JSONB NOT NULL
 );
 
-CREATE TABLE purchases (
-  id UUID PRIMARY KEY,
-  document_id UUID NOT NULL REFERENCES documents(id),
-  buyer_address TEXT NOT NULL,
-  line_start INTEGER NOT NULL,
-  line_end INTEGER NOT NULL,
-  amount_mist NUMERIC(40, 0) NOT NULL,
-  payment_tx TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL
+CREATE TABLE IF NOT EXISTS marketplace_chain_reconciliations (
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  sui_object_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  checked_at TIMESTAMPTZ NOT NULL,
+  transaction_digest TEXT,
+  details TEXT,
+  PRIMARY KEY (entity_type, entity_id)
 );
 
-CREATE TABLE capsules (
-  id UUID PRIMARY KEY,
-  document_id UUID NOT NULL REFERENCES documents(id),
-  purchase_id UUID REFERENCES purchases(id),
-  walrus_blob_id TEXT NOT NULL,
-  root_hash CHAR(64) NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL
-);
+CREATE INDEX IF NOT EXISTS marketplace_reconciliations_status_idx
+  ON marketplace_chain_reconciliations (status, checked_at DESC);

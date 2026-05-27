@@ -3,15 +3,17 @@ import { fileURLToPath } from "node:url";
 import cors from "cors";
 import { config } from "dotenv";
 import express from "express";
-import type { CapsuleRecord, DocumentListing, PurchaseReceipt } from "@capsule/shared-types";
+import type { CapsuleRecord, ChainReconciliationSummary, DocumentListing, PurchaseReceipt } from "@capsule/shared-types";
 import { z } from "zod";
-import { MarketplaceStore } from "./store.js";
+import { createMarketplaceRepository } from "./postgres.js";
+import { createConfiguredSuiReconciler } from "./reconciliation.js";
 
 config({ path: fileURLToPath(new URL("../../../.env", import.meta.url)) });
 
 const port = Number(process.env.MARKETPLACE_PORT ?? 4000);
 const app = express();
-const store = new MarketplaceStore();
+const store = await createMarketplaceRepository();
+const reconciler = createConfiguredSuiReconciler();
 
 const rangeSchema = z.object({
   start: z.number().int().nonnegative(),
@@ -58,15 +60,20 @@ app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 
 app.get("/health", (_request, response) => {
-  response.json({ service: "marketplace-api", ok: true, repository: "memory" });
+  response.json({
+    service: "marketplace-api",
+    ok: true,
+    repository: store.repositoryName,
+    reconciliation: Boolean(reconciler),
+  });
 });
 
-app.get("/documents", (_request, response) => {
-  response.json(store.listDocuments());
+app.get("/documents", async (_request, response) => {
+  response.json(await store.listDocuments());
 });
 
-app.get("/documents/:id", (request, response) => {
-  const document = store.getDocument(request.params.id);
+app.get("/documents/:id", async (request, response) => {
+  const document = await store.getDocument(request.params.id);
   if (!document) {
     response.status(404).json({ error: "Document listing not found" });
     return;
@@ -75,23 +82,23 @@ app.get("/documents/:id", (request, response) => {
 });
 
 // Content never enters this service; only the disclosure host registers listings.
-app.post("/internal/documents", (request, response) => {
+app.post("/internal/documents", async (request, response) => {
   const result = listingSchema.safeParse(request.body);
   if (!result.success) {
     response.status(400).json({ error: result.error.issues[0]?.message ?? "Invalid listing" });
     return;
   }
-  store.registerDocument(result.data as DocumentListing);
+  await store.registerDocument(result.data as DocumentListing);
   response.status(201).json(result.data);
 });
 
-app.post("/purchase", (request, response) => {
+app.post("/purchase", async (request, response) => {
   const result = purchaseSchema.safeParse(request.body);
   if (!result.success) {
     response.status(400).json({ error: result.error.issues[0]?.message ?? "Invalid purchase" });
     return;
   }
-  const listing = store.getDocument(result.data.documentId);
+  const listing = await store.getDocument(result.data.documentId);
   if (!listing) {
     response.status(404).json({ error: "Document listing not found" });
     return;
@@ -128,12 +135,12 @@ app.post("/purchase", (request, response) => {
     suiFragmentId: result.data.suiFragmentId,
     createdAt: new Date().toISOString(),
   };
-  store.addPurchase(receipt);
+  await store.addPurchase(receipt);
   response.status(201).json(receipt);
 });
 
-app.get("/purchases/:id", (request, response) => {
-  const purchase = store.getPurchase(request.params.id);
+app.get("/purchases/:id", async (request, response) => {
+  const purchase = await store.getPurchase(request.params.id);
   if (!purchase) {
     response.status(404).json({ error: "Purchase receipt not found" });
     return;
@@ -141,21 +148,60 @@ app.get("/purchases/:id", (request, response) => {
   response.json(purchase);
 });
 
-app.post("/internal/capsules", (request, response) => {
+app.post("/internal/capsules", async (request, response) => {
   const stored = request.body as CapsuleRecord;
   const capsuleId = "capsule" in stored ? stored.capsule?.capsuleId : stored.summary?.capsuleId;
   if (!capsuleId || !stored.capsuleBlobId) {
     response.status(400).json({ error: "Invalid capsule record" });
     return;
   }
-  store.addCapsule(stored);
+  await store.addCapsule(stored);
   response.status(201).json(stored);
 });
 
-app.get("/capsules", (_request, response) => {
-  response.json(store.listCapsules());
+app.get("/capsules", async (_request, response) => {
+  response.json(await store.listCapsules());
+});
+
+async function reconcileAllChainRecords(): Promise<ChainReconciliationSummary> {
+  if (!reconciler) {
+    throw new Error("SUI_PACKAGE_ID is required for chain reconciliation");
+  }
+  const summary = await reconciler.reconcile(
+    await store.listDocuments(),
+    await store.listPurchases(),
+    await store.listCapsules(),
+  );
+  await store.saveReconciliations(summary.records);
+  return summary;
+}
+
+app.post("/internal/reconcile", async (_request, response) => {
+  if (!reconciler) {
+    response.status(503).json({ error: "SUI_PACKAGE_ID is required for chain reconciliation" });
+    return;
+  }
+  response.json(await reconcileAllChainRecords());
+});
+
+app.get("/reconciliations", async (_request, response) => {
+  response.json(await store.listReconciliations());
+});
+
+const reconciliationIntervalMs = Number(process.env.RECONCILIATION_INTERVAL_MS ?? 0);
+if (reconciler && Number.isFinite(reconciliationIntervalMs) && reconciliationIntervalMs > 0) {
+  setInterval(() => {
+    void reconcileAllChainRecords().catch((error) => {
+      console.error("Marketplace Sui reconciliation failed", error);
+    });
+  }, reconciliationIntervalMs).unref();
+}
+
+app.use((error: unknown, _request: express.Request, response: express.Response, _next: express.NextFunction) => {
+  console.error("Marketplace request failed", error);
+  response.status(500).json({ error: error instanceof Error ? error.message : "Marketplace request failed" });
 });
 
 app.listen(port, () => {
-  console.log(`Capsule marketplace API listening on http://localhost:${port}`);
+  console.log(`Capsule marketplace API listening on http://localhost:${port} (${store.repositoryName})`);
 });
