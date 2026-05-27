@@ -214,3 +214,35 @@ The consumed `Purchase` now has the disclosure transaction as its most recent
 mutation. Reconciliation correctly validates that its recorded payment
 transaction originally created the receipt, rather than incorrectly requiring
 the latest mutation digest to be the payment digest.
+
+## Fresh Full-Stack Revalidation
+
+A fresh synthetic fixed-fragment lifecycle was executed on May 27, 2026 and
+its persisted artifacts were re-read on May 28, 2026. The active test used
+publisher-side Seal encryption before host upload, permanent Walrus testnet
+storage, the deployed Sui fixed-fragment policy, exact-price testnet payment,
+Seal buyer decryption, and PostgreSQL-backed reconciliation.
+
+| Artifact | Public identifier |
+| --- | --- |
+| Sui Document object | `0xcc17070371b982e0cf1446f3e84f65891e478bc83a52fdbcc05d5373d817ed4e` |
+| Sui Fragment object | `0x809f2c7759766292c83599d16f0576b788f58d01fb9a02212cffa44e3c82e588` |
+| Sui Purchase object | `0xfbaa906f8917a112f808324a10427fde1b6807b7520723f21039d4ad4bc345f7` |
+| Sui Disclosure object | `0xad020f81f9d78141489bff6de98cba4f20a96d6b720a8c08534943c266e8a061` |
+| Document manifest Walrus blob | `1OIzczyGODvLkGp0qLezsLwC2EyuwQasf_7lRjEwD3o` |
+| Encrypted fragment Walrus blob | `xUC9ouqobF5FREsbDgK9AmZ0D1yQd7fYG0cVVlxsnxo` |
+| Encrypted delivery Walrus blob | `73DLiqadkKWoNjCp77E-VPsn3OgISKoMqUVKV_YHwt8` |
+
+Validation results:
+
+- the host publication request did not contain the disclosed plaintext;
+- the Walrus delivery returned a Seal envelope and did not expose a plaintext
+  capsule, including after the disclosure host was restarted;
+- the paid buyer decrypted the purchased fragment through Seal and its Merkle
+  proof verified locally and against the Sui document anchor;
+- a new unauthorized wallet was rejected when attempting to decrypt the same
+  paid fragment;
+- PostgreSQL retained the listing, receipt, capsule record, and four audit
+  statuses across an API restart;
+- public reconciliation returned `checked: 4`, `verified: 4`, `failed: 0`
+  both before and after that restart.
