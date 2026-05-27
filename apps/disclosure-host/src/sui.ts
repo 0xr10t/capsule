@@ -194,6 +194,7 @@ export class SuiAnchorProvider {
     documentId: string,
     fragmentId: string,
     purchaseId: string,
+    capsuleBlobId: string,
   ): Promise<ChainRecord> {
     const transaction = new Transaction();
     transaction.moveCall({
@@ -202,6 +203,7 @@ export class SuiAnchorProvider {
         transaction.object(documentId),
         transaction.object(fragmentId),
         transaction.object(purchaseId),
+        transaction.pure.vector("u8", bytes(capsuleBlobId)),
         transaction.object.clock(),
       ],
     });

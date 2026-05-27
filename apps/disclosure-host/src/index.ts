@@ -257,21 +257,24 @@ app.post("/disclosure/generate", async (request, response) => {
         suiDocumentId: listing.suiDocumentId,
         suiFragmentId: fragment.suiFragmentId,
       };
+      const sealedCapsule: SealedCapsuleEnvelope = {
+        ...envelope,
+        suiPurchaseId: purchase.suiPurchaseId,
+        accessPolicy: "published-fragment",
+        suiFragmentId: fragment.suiFragmentId,
+      };
+      const deliveryBlob = await storage.uploadBlob(Buffer.from(JSON.stringify({ summary, sealedCapsule })));
       const chainRecord = await sui.recordFragmentDisclosure(
         listing.suiDocumentId,
         fragment.suiFragmentId,
         purchase.suiPurchaseId,
+        deliveryBlob.blobId,
       );
       const stored: CapsuleRecord = {
         summary,
-        sealedCapsule: {
-          ...envelope,
-          suiPurchaseId: purchase.suiPurchaseId,
-          accessPolicy: "published-fragment",
-          suiFragmentId: fragment.suiFragmentId,
-        },
-        capsuleBlobId: fragment.encryptedBlobId,
-        walrusBlobObjectId: fragment.walrusBlobObjectId,
+        sealedCapsule,
+        capsuleBlobId: deliveryBlob.blobId,
+        walrusBlobObjectId: deliveryBlob.suiObjectId,
         suiDisclosureId: chainRecord.objectId,
         disclosureTx: chainRecord.transactionDigest,
       };

@@ -277,10 +277,12 @@ public entry fun record_fragment_disclosure(
     document: &Document,
     fragment: &Fragment,
     purchase: &mut Purchase,
+    walrus_capsule_blob: vector<u8>,
     clock: &Clock,
     ctx: &mut TxContext,
 ) {
     assert!(ctx.sender() == document.owner, EUnauthorized);
+    assert!(!walrus_capsule_blob.is_empty(), EEmptyBlobId);
     let document_id = object::id(document);
     assert!(fragment.document_id == document_id && purchase.document_id == document_id, EWrongFragment);
     assert!(purchase.fragment_id == option::some(object::id(fragment)), EWrongFragment);
@@ -302,7 +304,7 @@ public entry fun record_fragment_disclosure(
         buyer,
         line_start,
         line_end,
-        walrus_capsule_blob: fragment.walrus_blob_id,
+        walrus_capsule_blob,
         timestamp_ms: clock.timestamp_ms(),
     };
     let disclosure_id = object::id(&disclosure);

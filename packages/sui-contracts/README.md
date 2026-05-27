@@ -43,4 +43,6 @@ capsule again.
 
 `record_fragment_disclosure` and `seal_approve_fragment` are the source-keyless
 fixed-section path. Both require a fragment-bound paid purchase, so a general
-range receipt cannot be replayed to unlock a pre-encrypted section.
+range receipt cannot be replayed to unlock a pre-encrypted section. The
+recorded Walrus capsule blob is a ciphertext-only delivery wrapper carrying
+purchase provenance around the pre-published fragment ciphertext.
