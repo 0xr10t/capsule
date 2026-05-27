@@ -48,12 +48,28 @@ high-performance verifier.
 
 The marketplace is intentionally blind to document content and encryption
 keys. It stores publishable metadata, purchasable sections, receipts, and
-non-sensitive capsule summaries.
+non-sensitive capsule summaries. In persistent mode those records and their
+latest Sui audit statuses are stored in PostgreSQL; memory mode remains
+available for a zero-setup local demo.
 
 For fixed fragments, the disclosure host does not own confidential
 processing. It verifies paid metadata, stores encrypted deliveries, and
 records provenance. Proof construction and encryption happen in the
 publisher browser; decryption and verification happen in the buyer browser.
+
+## Public Chain Reconciliation
+
+The marketplace reads, but never signs for, the public Sui objects referenced
+by its index. Manual or scheduled reconciliation validates:
+
+- `Document` root, manifest blob, owner, line count, price, and registration digest;
+- `Fragment` range, Seal identity, encrypted blob, and parent document;
+- `Purchase` metadata, fragment binding, and the payment transaction that created its receipt;
+- `Disclosure` buyer, range, purchase reference, and capsule blob.
+
+Purchase reconciliation verifies its creation in the payment transaction
+because recording a disclosure later mutates its `consumed` status. This keeps
+the audit index correct after successful delivery.
 
 ## AI-Agent Interface
 

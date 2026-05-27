@@ -148,7 +148,7 @@ this mode.
 | Layer | Implementation | Responsibility |
 | --- | --- | --- |
 | Interface | React, Vite, Tailwind, TanStack Query, Zustand | Upload, browse, issue capsules, verify |
-| Marketplace API | Express, TypeScript | Listings, prices, purchase receipts, public metadata |
+| Marketplace API | Express, TypeScript, PostgreSQL | Durable listings, prices, receipts, public audit index |
 | Disclosure Host | Express, TypeScript | Ciphertext storage, paid-delivery provenance, Sui submission |
 | Proof SDK | TypeScript | Browser/node Merkle and capsule verification |
 | Proof Engine | Rust, WASM | Canonical Merkle operations and WASM exports |
@@ -188,8 +188,10 @@ The live testnet implementation currently proves:
 Testnet purchases now transfer exact-price SUI payments to the publisher and
 create a one-use shared receipt that must be consumed to record disclosure.
 The source-key custody boundary is removed for the fixed-fragment mode. The
-remaining production gaps are durable marketplace persistence, stronger
-publisher authentication/ownership UX, and indexed chain reconciliation. See
+marketplace can persist metadata in PostgreSQL and reconcile its recorded
+documents, fragments, purchases, and disclosures against public Sui state.
+Remaining production gaps include stronger publisher authentication/ownership
+UX and operational hardening for hosted deployment. See
 [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Run Locally
@@ -214,6 +216,24 @@ Services:
 In local demo mode, use `STORAGE_DRIVER=memory`. It exercises encryption,
 proofs, capsules, and UI verification without publishing external artifacts.
 
+### Durable Marketplace Metadata
+
+The zero-setup demo keeps `DATABASE_DRIVER=memory`. For a persistent
+marketplace, run PostgreSQL, create the database named in `DATABASE_URL`, and
+set:
+
+```env
+DATABASE_DRIVER=postgres
+DATABASE_URL=postgresql://capsule:capsule@localhost:5432/capsule
+RECONCILIATION_INTERVAL_MS=60000
+```
+
+The marketplace creates tables for listings, receipts, capsules, and public
+chain reconciliation results on startup. It stores public metadata only; it
+never stores plaintext sections or Seal decryption keys. With `SUI_PACKAGE_ID`
+configured, `POST /internal/reconcile` immediately checks indexed references
+against Sui and `GET /reconciliations` returns the most recent audit statuses.
+
 ## Run Against Testnet
 
 Never paste a private key into source code, screenshots, chat, or a commit.
@@ -226,6 +246,9 @@ STORAGE_DRIVER=walrus
 SUI_NETWORK=testnet
 SUI_PRIVATE_KEY=suiprivkey...
 SUI_PACKAGE_ID=0xd7fbb00bee87bbc0f9f4a196dac5f6607cc22f11157e6ed9e24dfd9cd02f4112
+DATABASE_DRIVER=postgres
+DATABASE_URL=postgresql://capsule:capsule@localhost:5432/capsule
+RECONCILIATION_INTERVAL_MS=60000
 SEAL_CAPSULES=true
 VITE_SUI_NETWORK=testnet
 VITE_CAPSULE_PACKAGE_ID=0xd7fbb00bee87bbc0f9f4a196dac5f6607cc22f11157e6ed9e24dfd9cd02f4112

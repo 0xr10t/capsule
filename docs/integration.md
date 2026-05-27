@@ -68,6 +68,30 @@ locally. For capsules that contain a Sui `Document` object ID, it additionally
 reads the public Sui object from the configured network and reports success
 only if its on-chain root equals the proof root.
 
+## Marketplace Persistence And Reconciliation
+
+Set `DATABASE_DRIVER=postgres` and `DATABASE_URL` to keep public listings,
+payment receipt references, capsule summaries, and reconciliation statuses
+across API restarts. The marketplace creates its PostgreSQL tables on startup.
+The payload columns are JSONB records of public protocol metadata; source
+plaintext and decryption material never enter this database.
+
+When `SUI_PACKAGE_ID` is configured, the marketplace can index its Sui
+references without a signer:
+
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /internal/reconcile` | Read every indexed Sui object now and persist verification statuses |
+| `GET /reconciliations` | Return the latest persisted status for each referenced object |
+
+Set `RECONCILIATION_INTERVAL_MS` to a positive millisecond interval to run the
+same public-read audit periodically. It checks `Document` ownership,
+`Fragment` references, fragment-bound `Purchase` records, and `Disclosure`
+records. For a consumed `Purchase`, it reads the
+recorded payment transaction's object changes to prove the receipt originated
+from that payment rather than treating its later disclosure mutation as its
+creation transaction.
+
 ## Deploying The Move Package
 
 Keep `SUI_PRIVATE_KEY` only in the local gitignored `.env` file, formatted as a
@@ -89,7 +113,9 @@ testnet fixed-fragment path anchors roots, enforces exact-price SUI purchases,
 records disclosures on Sui, and gates stored fragment decryption through Seal
 without giving source plaintext or a source encryption key to the host.
 
-Production hardening should add durable metadata storage, chain
-reconciliation, and wallet-owned publisher registration. Arbitrary range
-release should remain disabled in the trust-minimized path unless implemented
-through an appropriate encrypted-fragment strategy.
+Durable PostgreSQL metadata storage and public Sui reconciliation are now
+available for deployed environments. Production hardening should still add
+wallet-owned publisher registration and operational authentication around
+internal service routes. Arbitrary range release should remain disabled in the
+trust-minimized path unless implemented through an appropriate
+encrypted-fragment strategy.

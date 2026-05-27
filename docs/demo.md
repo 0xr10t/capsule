@@ -42,6 +42,10 @@ npm run dev
 8. Select one encrypted section and approve the SUI payment transaction; it
    creates a fragment-bound `Purchase`. Approve the second wallet message to
    authorize a short-lived Seal decryption session.
+9. For the durable deployment, set `DATABASE_DRIVER=postgres`, then call
+   `POST /internal/reconcile` and show `GET /reconciliations`: the public
+   `Document`, `Fragment`, `Purchase`, and `Disclosure` references should all
+   report `verified`.
 
 The resulting listing shows Sui anchored document and fragment objects. An
 issued capsule records the paid purchase and disclosure objects. Walrus holds

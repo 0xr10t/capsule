@@ -190,3 +190,27 @@ receipt for the same line bounds:
 Seal decryption was rejected because `seal_approve_fragment` requires the
 paid receipt to be bound to the registered `Fragment`, not merely to have the
 same line range.
+
+## Persistent Marketplace Reconciliation Validation
+
+Validated on May 27, 2026 after adding the PostgreSQL-backed public metadata
+index and read-only Sui reconciler. This check created no new Sui transaction
+and required no signing key: it re-indexed the fixed-fragment validation
+objects above through public Sui testnet reads.
+
+| Reconciled object | Status |
+| --- | --- |
+| `Document` `0x2a8769dd14306288c9debcd587b07923d1c4d1fa96ea368b427f7860b0274262` | `verified` |
+| `Fragment` `0x678194bd04275dd5b6c35a7956c37364bee83adc336f67c2629e7d8c4c380a4f` | `verified` |
+| `Purchase` `0x125376c66e5afed0b3e42e3fb2b4992059a5336d28a26020e6dea04be62e194a` | `verified` |
+| `Disclosure` `0xa8d4dc5441f7edafb0b561d311c0b6c910480b7bcb5ada1c43c1620de7220f08` | `verified` |
+
+A temporary PostgreSQL-backed marketplace stored the public listing, receipt,
+capsule summary, and four audit rows. After restarting the API against the
+same database, those rows remained available and a second live reconciliation
+again returned `checked: 4`, `verified: 4`, `failed: 0`.
+
+The consumed `Purchase` now has the disclosure transaction as its most recent
+mutation. Reconciliation correctly validates that its recorded payment
+transaction originally created the receipt, rather than incorrectly requiring
+the latest mutation digest to be the payment digest.

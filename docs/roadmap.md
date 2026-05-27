@@ -1,6 +1,6 @@
 # Protocol Upgrade Roadmap
 
-## Current Milestone: Source-Keyless Fixed-Fragment Disclosure
+## Current Milestone: Durable Public Metadata And Chain Reconciliation
 
 Capsule now covers the public audit path required for a credible testnet demo:
 
@@ -12,6 +12,9 @@ Capsule now covers the public audit path required for a credible testnet demo:
   buyer through the `seal_approve` Sui policy;
 - publisher-side Seal-encrypted fixed fragments, purchased through
   fragment-bound receipts and decrypted through `seal_approve_fragment`;
+- optional PostgreSQL storage for durable public marketplace records;
+- read-only indexed reconciliation of recorded Sui documents, fragments,
+  purchases, and disclosures;
 - local proof and on-chain root verification.
 
 The disclosure host no longer receives source plaintext or a document key in
@@ -53,8 +56,8 @@ Official reference: [Seal documentation](https://seal-docs.wal.app/).
 | Complete | Sui paid purchase receipts and wallet signing | Makes each paid disclosure observable and enforceable on-chain |
 | Complete | Seal-encrypted paid capsules plus `seal_approve` | Prevents public disclosure payload exposure and proves paid-buyer gating |
 | Complete | Publisher-side Seal-encrypted purchasable fragments | Removes the in-process source key without exposing full documents |
-| Next | PostgreSQL persistence and indexed chain reconciliation | Prevents listings and operational state from disappearing on restart |
-| Then | MCP server around listing, fetch, and verify tools | Provides a concrete AI-agent demonstration after payment/decryption contracts stabilize |
+| Complete | PostgreSQL persistence and indexed chain reconciliation | Prevents listings and public audit state from disappearing on restart |
+| Next | MCP server around listing, fetch, and verify tools | Provides a concrete AI-agent demonstration after payment/decryption contracts stabilize |
 | Then | Walrus Site frontend deployment | Makes the public demo itself verifiable through the Walrus stack |
 | Optional | zkLogin onboarding | Improves consumer UX; does not fix protocol trust boundaries |
 
