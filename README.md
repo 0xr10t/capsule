@@ -5,7 +5,7 @@
 **Capsule** is a protocol and marketplace demo
 built for the Walrus track of Sui Overflow 2026. Publishers encrypt documents,
 commit their line-level Merkle roots on Sui, and disclose only purchased
-fragments. Buyers and AI agents receive durable Walrus capsules containing the
+fragments. Buyers and AI agents unlock durable Walrus capsules containing the
 disclosed lines, proof material, and provenance needed to verify those lines
 without receiving the full source document.
 
@@ -18,8 +18,8 @@ verifiable without making it wholly visible:
 - **Selective disclosure:** buyers receive only the purchased line range.
 - **Verifiable content:** SHA-256 Merkle proofs tie each disclosed line to the
   committed original document.
-- **Durable artifacts:** encrypted source envelopes and public disclosure
-  capsules are stored on Walrus.
+- **Durable artifacts:** encrypted source envelopes and Seal-protected
+  disclosure capsules are stored on Walrus.
 - **Public provenance:** Sui stores document commitments and disclosure
   records.
 - **Agent-ready output:** capsules are stable JSON artifacts suitable for
@@ -32,19 +32,20 @@ testnet and Sui testnet:
 
 | Item | Public identifier |
 | --- | --- |
-| Sui Move package | `0xf71a6439bfe12645e47713e824b0c1f43f112ee187ed3510f4c155a10c01ba4d` |
-| Package publish transaction | `6KiCJCnMGp5fyBxo3Tq83VQ1fwzZCc27xVnVEwqhH17a` |
-| Anchored Document object | `0x19ac994787ee5d97f6c5777b3a841c9c08ea1fe1110b32da637d109c622c2b1d` |
-| Paid Purchase object | `0xbe4cb2bd02e9c5abc27344c0e44cee0d67f1dd6f79b6138b1d8d672e6a99513b` |
-| Payment transaction | `Hbe8Ly6XHppAYxicRBikuYFMcfGMUdefvBCo8a9bXvcG` |
-| Recorded Disclosure object | `0x16bcf76f62f5aa3d85777a37cbca8feb2087298a1d144b1fcfe554fc38800e88` |
-| Encrypted source Walrus blob | `yGhgDDaqfqo7SMMGnB_VOni1RVKuiIJLQAOmOSfMGJI` |
-| Disclosure capsule Walrus blob | `jGYfs8xE6f6PHozmvJey6QTQiMhM3IiObLFqo9ShZZc` |
+| Sui Move package with `seal_approve` | `0xd16496070b726a5bd60f9253b792f45362dab38546898343b31cc58d15207d32` |
+| Package publish transaction | `3hKnmtzAKcjGzDt9BC9sGvCXtCdBynNUHTsfsTFnJDz2` |
+| Anchored Document object | `0x6800dd015d69b094a5c5cda293487030ad9af2194d9fa879d74586e493829e3d` |
+| Paid Purchase object | `0xbd1d858f5f27fbfa3ae31ab7f0f24664c63c01f95081f772d7f286ad23e005a7` |
+| Payment transaction | `DZdg7RJW4CVFLyHc9rHDGdZa2i5jHPCzpUeJc6mqycf6` |
+| Recorded Disclosure object | `0xf3bb5e62ff7105a1b3f497fa50062704d9eb0ab4e85e9c8d47fc76f034deab1b` |
+| Encrypted source Walrus blob | `jYpafS3MD_Q_Kt9sg5Dub6B_wamhwgW76TuOwgtedI0` |
+| Seal-encrypted capsule Walrus blob | `1fS7wkhP8VFwmEuYBiWoIohPHWj7Toh9bJ8ia1YzJ84` |
 
-The capsule was retrieved from Walrus and verified against its Sui-anchored
-root by the API after a real `1,000,000` MIST purchase receipt was created and
-consumed on Sui. The recorded `Disclosure` stores the paid `Purchase` ID for
-direct provenance inspection. Full public artifacts are recorded in
+After a real `1,000,000` MIST purchase, the capsule was Seal-encrypted under
+the paid `Purchase` identity and stored on Walrus. Fetching that blob exposed
+no plaintext capsule; the authorized buyer decrypted the selected line through
+Seal and locally verified its Merkle proof. The recorded `Disclosure` stores
+the paid `Purchase` ID for direct provenance inspection. Full public artifacts are recorded in
 [`docs/testnet-validation.md`](docs/testnet-validation.md) and
 [`deployments/sui-testnet.json`](deployments/sui-testnet.json).
 
@@ -58,6 +59,7 @@ sequenceDiagram
     participant Market as Marketplace API
     participant Walrus as Walrus Storage
     participant Sui as Sui Contract
+    participant Seal as Seal Key Servers
     actor Buyer as Buyer / AI Agent
 
     Publisher->>UI: Enter source document and pricing
@@ -81,12 +83,17 @@ sequenceDiagram
     Host->>Host: Decrypt and verify committed root
     Host->>Host: Extract purchased lines and build proof
     Host->>Host: Sign disclosure capsule
-    Host->>Walrus: Upload public capsule
+    Host->>Seal: Encrypt capsule using Purchase ID policy
+    Host->>Walrus: Upload Seal-encrypted capsule
     Walrus-->>Host: Capsule blob ID
     Host->>Sui: record_disclosure(purchase, capsule reference)
     Sui-->>Host: Disclosure provenance object
-    Host-->>UI: Capsule and blob ID
+    Host-->>UI: Encrypted capsule and blob ID
 
+    UI->>Seal: Request decryption with wallet session
+    Seal->>Sui: Dry-run seal_approve(purchase ID)
+    Seal-->>UI: Release decryption material to paid buyer
+    UI->>UI: Decrypt capsule locally
     UI->>UI: Verify Merkle proof and signature locally
     UI->>Sui: Read public Document anchor
     UI->>UI: Compare proof root to anchored root
@@ -108,13 +115,17 @@ sequenceDiagram
    payment that creates a public, one-use `Purchase` receipt.
 2. The disclosure host validates that receipt, reads and decrypts the source, checks it against the
    committed root, and creates a proof for only the purchased lines.
-3. A signed disclosure capsule is uploaded to Walrus and recorded on Sui.
-4. The browser independently verifies the capsule proof and resolves the Sui
+3. In Seal mode, the signed capsule is encrypted under the paid `Purchase`
+   identity before it is uploaded to Walrus and recorded on Sui.
+4. The purchasing wallet authorizes a short-lived Seal session and decrypts
+   the capsule locally.
+5. The browser independently verifies the capsule proof and resolves the Sui
    document anchor before accepting the revealed content.
 
 ## Capsule Artifact
 
-A public disclosure capsule is an immutable, replayable knowledge fragment:
+A decrypted disclosure capsule is an immutable, replayable knowledge fragment
+for its authorized buyer:
 
 ```json
 {
@@ -130,8 +141,9 @@ A public disclosure capsule is an immutable, replayable knowledge fragment:
 }
 ```
 
-The original plaintext document and its AES key are not included in the
-capsule.
+With `SEAL_CAPSULES=true`, Walrus stores a Seal envelope rather than this
+plaintext JSON. The original plaintext document and its AES key are never
+included in the capsule.
 
 ## Architecture
 
@@ -142,8 +154,9 @@ capsule.
 | Disclosure Host | Express, TypeScript | Encryption, selective release, signatures, storage and Sui submission |
 | Proof SDK | TypeScript | Browser/node Merkle and capsule verification |
 | Proof Engine | Rust, WASM | Canonical Merkle operations and WASM exports |
-| Storage | Walrus | Encrypted documents and public disclosure capsules |
-| Commitments | Sui Move | Document roots and disclosure provenance |
+| Storage | Walrus | Encrypted documents and Seal-encrypted disclosure capsules |
+| Commitments | Sui Move | Document roots, payments, disclosure provenance, Seal policy |
+| Access control | Seal | Buyer-only decryption of paid capsule payloads |
 
 ### Monorepo
 
@@ -159,24 +172,26 @@ capsule.
 
 ## Security Model And MVP Boundary
 
-Walrus is public storage. Capsule therefore uploads the original source only
-after AES-256-GCM encryption; disclosure capsules are intentionally public
-because they contain purchased material intended for durable audit and reuse.
+Walrus is public storage. Capsule uploads the original source only after
+AES-256-GCM encryption. In Seal mode, purchased disclosure capsules are also
+encrypted before Walrus upload, and `seal_approve` allows decryption only by
+the buyer named in the matching paid Sui `Purchase`.
 
 The live testnet implementation currently proves:
 
 - encrypted source publication on Walrus;
 - permanent capsule publication on Walrus;
 - Sui document-root anchoring and disclosure provenance;
+- paid-buyer Seal decryption authorization for stored capsules;
 - local proof, signature, and on-chain-root verification.
 
 Testnet purchases now transfer exact-price SUI payments to the publisher and
 create a one-use shared receipt that must be consumed to record disclosure.
-The primary remaining trust boundary is encryption custody: the disclosure
-host still holds document decryption keys in memory. Production hardening
-requires Seal-compatible selective encryption or another trust-minimized key
-release design, plus durable marketplace persistence and authenticated
-production operations. See [`docs/roadmap.md`](docs/roadmap.md).
+The primary remaining trust boundary is source extraction: the disclosure
+host still holds the AES source key in memory before encrypting the purchased
+capsule with Seal. Removing that boundary requires publisher-side
+Seal-encrypted purchasable fragments, plus durable marketplace persistence and
+authenticated production operations. See [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Run Locally
 
@@ -211,9 +226,10 @@ PROTOCOL_MODE=testnet
 STORAGE_DRIVER=walrus
 SUI_NETWORK=testnet
 SUI_PRIVATE_KEY=suiprivkey...
-SUI_PACKAGE_ID=0xf71a6439bfe12645e47713e824b0c1f43f112ee187ed3510f4c155a10c01ba4d
+SUI_PACKAGE_ID=0xd16496070b726a5bd60f9253b792f45362dab38546898343b31cc58d15207d32
+SEAL_CAPSULES=true
 VITE_SUI_NETWORK=testnet
-VITE_CAPSULE_PACKAGE_ID=0xf71a6439bfe12645e47713e824b0c1f43f112ee187ed3510f4c155a10c01ba4d
+VITE_CAPSULE_PACKAGE_ID=0xd16496070b726a5bd60f9253b792f45362dab38546898343b31cc58d15207d32
 ```
 
 To publish a new contract package instead of using the recorded deployment:

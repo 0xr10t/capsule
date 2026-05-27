@@ -1,28 +1,32 @@
 {
   "network": "testnet",
   "validatedAt": "2026-05-26",
-  "packageId": "0xf71a6439bfe12645e47713e824b0c1f43f112ee187ed3510f4c155a10c01ba4d",
+  "packageId": "0xd16496070b726a5bd60f9253b792f45362dab38546898343b31cc58d15207d32",
   "publisher": "0x36d11715f9de629020e20901ce473a8d44d23609c948999175a1673d183eaf21",
-  "publishTransaction": "6KiCJCnMGp5fyBxo3Tq83VQ1fwzZCc27xVnVEwqhH17a",
-  "previousPaidPackageId": "0xafd35495751db2d8e19d9af79570554632b29d9beb578d6e891b46a6bcf8b85d",
+  "publishTransaction": "3hKnmtzAKcjGzDt9BC9sGvCXtCdBynNUHTsfsTFnJDz2",
+  "previousPaidPackageId": "0xf71a6439bfe12645e47713e824b0c1f43f112ee187ed3510f4c155a10c01ba4d",
   "capabilities": [
     "document-root-anchoring",
     "paid-purchase-receipts",
     "single-use-disclosure-authorization",
-    "disclosure-to-purchase-linkage"
+    "disclosure-to-purchase-linkage",
+    "seal-paid-capsule-authorization",
+    "seal-encrypted-walrus-capsules"
   ],
   "validation": {
-    "encryptedDocumentBlobId": "yGhgDDaqfqo7SMMGnB_VOni1RVKuiIJLQAOmOSfMGJI",
-    "documentObjectId": "0x19ac994787ee5d97f6c5777b3a841c9c08ea1fe1110b32da637d109c622c2b1d",
-    "documentTransaction": "CN1BYPJXtoBteuCVCNvU13anqZVbi33qjJBj7Hw3BQgV",
-    "purchaseObjectId": "0xbe4cb2bd02e9c5abc27344c0e44cee0d67f1dd6f79b6138b1d8d672e6a99513b",
-    "paymentTransaction": "Hbe8Ly6XHppAYxicRBikuYFMcfGMUdefvBCo8a9bXvcG",
+    "encryptedDocumentBlobId": "jYpafS3MD_Q_Kt9sg5Dub6B_wamhwgW76TuOwgtedI0",
+    "documentObjectId": "0x6800dd015d69b094a5c5cda293487030ad9af2194d9fa879d74586e493829e3d",
+    "documentTransaction": "7ULrLXZtgxV9p1eZUGjCsaUudebyrqDNNybCBevss6i4",
+    "purchaseObjectId": "0xbd1d858f5f27fbfa3ae31ab7f0f24664c63c01f95081f772d7f286ad23e005a7",
+    "paymentTransaction": "DZdg7RJW4CVFLyHc9rHDGdZa2i5jHPCzpUeJc6mqycf6",
     "amountMist": "1000000",
     "purchaseConsumed": true,
-    "capsuleBlobId": "jGYfs8xE6f6PHozmvJey6QTQiMhM3IiObLFqo9ShZZc",
-    "disclosureObjectId": "0x16bcf76f62f5aa3d85777a37cbca8feb2087298a1d144b1fcfe554fc38800e88",
-    "disclosureTransaction": "EzVZFU8cG1JNsaR6jU1euMCkpRYppyge3CwQaqeVETu3",
-    "disclosurePurchaseId": "0xbe4cb2bd02e9c5abc27344c0e44cee0d67f1dd6f79b6138b1d8d672e6a99513b",
-    "anchoredVerification": true
+    "capsuleBlobId": "1fS7wkhP8VFwmEuYBiWoIohPHWj7Toh9bJ8ia1YzJ84",
+    "disclosureObjectId": "0xf3bb5e62ff7105a1b3f497fa50062704d9eb0ab4e85e9c8d47fc76f034deab1b",
+    "disclosureTransaction": "AYUybRAK1bjxbRhGi1VS5NBt5Mu3VkxU4zzvbFhhdP7Q",
+    "disclosurePurchaseId": "0xbd1d858f5f27fbfa3ae31ab7f0f24664c63c01f95081f772d7f286ad23e005a7",
+    "walrusPayloadExposedPlaintextCapsule": false,
+    "sealBuyerDecryption": true,
+    "localProofVerification": true
   }
 }

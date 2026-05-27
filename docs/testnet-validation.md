@@ -111,3 +111,37 @@ The purchase paid `1000000` MIST for one synthetic line. The on-chain
 `Purchase` was consumed and the `Disclosure.purchase_id` field resolves to
 that same object ID. Fetching the capsule back through Walrus and verifying
 its anchor returned `valid: true` and `anchored: true`.
+
+## Seal-Encrypted Capsule Delivery
+
+Validated on May 26, 2026 after publishing the package with the read-only
+`seal_approve` policy. This run used a synthetic source and a real `1,000,000`
+MIST purchase. The validation signer acted as both publisher and automated
+buyer; in the UI, the buyer is the connected wallet.
+
+| Artifact | Public identifier |
+| --- | --- |
+| Seal-enabled Capsule package | `0xd16496070b726a5bd60f9253b792f45362dab38546898343b31cc58d15207d32` |
+| Package publish transaction | `3hKnmtzAKcjGzDt9BC9sGvCXtCdBynNUHTsfsTFnJDz2` |
+| Encrypted source Walrus blob | `jYpafS3MD_Q_Kt9sg5Dub6B_wamhwgW76TuOwgtedI0` |
+| Sui Document object | `0x6800dd015d69b094a5c5cda293487030ad9af2194d9fa879d74586e493829e3d` |
+| Document registration transaction | `7ULrLXZtgxV9p1eZUGjCsaUudebyrqDNNybCBevss6i4` |
+| Paid Purchase object / Seal identity | `0xbd1d858f5f27fbfa3ae31ab7f0f24664c63c01f95081f772d7f286ad23e005a7` |
+| Payment transaction | `DZdg7RJW4CVFLyHc9rHDGdZa2i5jHPCzpUeJc6mqycf6` |
+| Seal-encrypted capsule Walrus blob | `1fS7wkhP8VFwmEuYBiWoIohPHWj7Toh9bJ8ia1YzJ84` |
+| Sui Disclosure object | `0xf3bb5e62ff7105a1b3f497fa50062704d9eb0ab4e85e9c8d47fc76f034deab1b` |
+| Disclosure record transaction | `AYUybRAK1bjxbRhGi1VS5NBt5Mu3VkxU4zzvbFhhdP7Q` |
+
+Fetching the Walrus capsule payload returned a Seal envelope and metadata,
+not a plaintext `capsule` field. The buyer then obtained decryption material
+through Seal by presenting a session for the matching paid `Purchase` object.
+The decrypted content contained only:
+
+```text
+sealed purchased line one
+```
+
+Local Merkle verification of the decrypted capsule returned `valid: true`.
+This integration protects delivered capsule content at rest and gates its
+decryption to the paid buyer. It does not yet remove the disclosure host's AES
+access to the original source document while it extracts a requested range.

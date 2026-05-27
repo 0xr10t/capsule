@@ -4,15 +4,15 @@
 
 Walrus blobs are public. Capsule therefore chunks plaintext locally for its
 Merkle commitment, encrypts the complete source with AES-256-GCM, and uploads
-only the encrypted envelope. The disclosure host is the MVP key custodian:
-buyers do not obtain the document key and receive only purchased plaintext
-lines inside a disclosure capsule.
+only the encrypted envelope. The disclosure host is still the source-key
+custodian: buyers do not obtain the document key. In Seal mode, a purchased
+capsule is encrypted before Walrus upload and decrypted locally by its paid
+buyer.
 
 Payments are settled with a Sui `Purchase` object consumed when disclosure is
-recorded. For a production deployment, the remaining host key vault should be
-replaced with Seal-gated encrypted disclosure units or another threshold-backed
-key release model. This limitation is explicit rather than disguised as full
-decentralization.
+recorded. The same purchase object authorizes Seal decryption through a
+read-only `seal_approve` policy. To remove the remaining source-key boundary,
+publication should produce publisher-side Seal-encrypted purchasable fragments.
 
 ## Data Flow
 
@@ -26,9 +26,13 @@ flowchart LR
   S -->|"Purchase receipt"| M
   M -->|"paid reference"| H
   H -->|"read encrypted blob and decrypt"| W
-  H -->|"capsule with lines and proof"| W
+  H -->|"Seal-encrypted capsule"| W
   H -->|"consume Purchase and record disclosure"| S
-  B -->|"fetch and locally verify capsule"| W
+  B -->|"fetch encrypted capsule"| W
+  B -->|"wallet session and purchase policy"| K["Seal"]
+  K -->|"dry-run seal_approve"| S
+  K -->|"decryption material"| B
+  B -->|"decrypt and locally verify"| B
 ```
 
 ## Merkle Commitment
@@ -45,16 +49,17 @@ high-performance verifier.
 
 ## Services
 
-The marketplace is intentionally blind to document content and encryption keys.
-It stores publishable metadata, purchasable sections, and receipts.
+The marketplace is intentionally blind to document content and encryption
+keys. It stores publishable metadata, purchasable sections, receipts, and
+non-sensitive capsule summaries.
 
 The disclosure host owns confidential processing in the MVP. It verifies that a
 receipt grants the requested range, creates a Merkle proof, packages provenance,
-and uploads a capsule to storage.
+and, in Seal mode, uploads only an encrypted capsule envelope to storage.
 
 ## AI-Agent Interface
 
-An agent can list documents, purchase an approved range, receive a JSON capsule,
-verify it locally using the SDK or WASM proof engine, and feed only verified
-content into retrieval pipelines. Capsule JSON is deliberately stable and
-machine-readable.
+An authorized agent can list documents, purchase an approved range, unlock a
+Seal-encrypted JSON capsule, verify it locally using the SDK or WASM proof
+engine, and feed only verified content into retrieval pipelines. Capsule JSON
+is deliberately stable and machine-readable after decryption.

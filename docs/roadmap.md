@@ -8,18 +8,24 @@ Capsule now covers the public audit path required for a credible testnet demo:
 - document root and capsule provenance objects on Sui;
 - exact-price SUI payments from the buyer wallet;
 - a one-use shared `Purchase` object required by `record_disclosure`;
+- Seal-encrypted paid capsules stored on Walrus and decrypted by the paid
+  buyer through the `seal_approve` Sui policy;
 - local proof and on-chain root verification.
 
 The remaining central trust assumption is that the disclosure host currently
 holds the AES key used to decrypt an original source before producing the
 purchased fragment.
 
-## Seal: Preserve Selective Disclosure First
+## Seal Status: Delivery Implemented, Source Custody Next
 
-Seal is the highest-value next integration, but the policy must not decrypt the
-complete source document for any buyer. If a buyer who paid for lines 20-25
-receives Seal access to the full encrypted source, Capsule has ceased to be a
-selective-disclosure protocol.
+The implemented Seal path protects the purchased capsule after it has been
+generated: the capsule is encrypted under its paid `Purchase` object ID,
+stored on Walrus as ciphertext, and decrypted locally only by the recorded
+buyer. This fixes public exposure of issued paid capsules.
+
+It does not by itself remove the disclosure host's access to the source
+document. Seal must not grant a buyer access to the complete source when that
+buyer paid for only lines 20-25; doing so would violate selective disclosure.
 
 The compatible target design is fragment-level encryption:
 
@@ -45,7 +51,8 @@ Official reference: [Seal documentation](https://seal-docs.wal.app/).
 | Priority | Upgrade | Reason |
 | --- | --- | --- |
 | Complete | Sui paid purchase receipts and wallet signing | Makes each paid disclosure observable and enforceable on-chain |
-| Next | Seal-encrypted purchasable fragments plus `seal_approve` | Removes the in-process source key without exposing full documents |
+| Complete | Seal-encrypted paid capsules plus `seal_approve` | Prevents public disclosure payload exposure and proves paid-buyer gating |
+| Next | Publisher-side Seal-encrypted purchasable fragments | Removes the in-process source key without exposing full documents |
 | Next | PostgreSQL persistence and indexed chain reconciliation | Prevents listings and operational state from disappearing on restart |
 | Then | MCP server around listing, fetch, and verify tools | Provides a concrete AI-agent demonstration after payment/decryption contracts stabilize |
 | Then | Walrus Site frontend deployment | Makes the public demo itself verifiable through the Walrus stack |
