@@ -26,6 +26,10 @@ blob ID, line count, and per-line MIST price.
 exact `Coin<SUI>` payment. It transfers payment to the publisher and creates a
 public `Purchase` object recording the buyer, range, and amount.
 
+`register_fragment` stores a pointer to one publisher-side Seal-encrypted
+fixed section. `purchase_fragment` transfers exact-price SUI for that section
+and binds the new `Purchase` directly to its `Fragment` object.
+
 `record_disclosure` accepts a shared `Document`, the matching mutable
 `Purchase`, and the Walrus capsule blob ID. The package enforces that only the
 document owner records the release, marks the purchase consumed, and stores
@@ -36,3 +40,7 @@ Its Seal identity must be the paid `Purchase` object ID, and only the buyer
 recorded by that purchase is approved to decrypt. It remains valid after
 `record_disclosure` so an authorized buyer can fetch the permanent Walrus
 capsule again.
+
+`record_fragment_disclosure` and `seal_approve_fragment` are the source-keyless
+fixed-section path. Both require a fragment-bound paid purchase, so a general
+range receipt cannot be replayed to unlock a pre-encrypted section.

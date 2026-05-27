@@ -14,6 +14,7 @@ const EWrongPurchase: u64 = 5;
 const EPurchaseConsumed: u64 = 6;
 const EInvalidPrice: u64 = 7;
 const EInvalidLineCount: u64 = 8;
+const EWrongFragment: u64 = 9;
 
 /// A public commitment to an encrypted source stored as a Walrus blob.
 public struct Document has key, store {
@@ -31,12 +32,23 @@ public struct Document has key, store {
 public struct Purchase has key, store {
     id: UID,
     document_id: ID,
+    fragment_id: Option<ID>,
     buyer: address,
     line_start: u64,
     line_end: u64,
     amount_mist: u64,
     consumed: bool,
     timestamp_ms: u64,
+}
+
+/// A publisher-encrypted fixed section that can be sold without server plaintext access.
+public struct Fragment has key, store {
+    id: UID,
+    document_id: ID,
+    seal_identity: vector<u8>,
+    line_start: u64,
+    line_end: u64,
+    walrus_blob_id: vector<u8>,
 }
 
 /// The on-chain pointer to a permanent selective-disclosure capsule.
@@ -74,6 +86,13 @@ public struct RangePurchased has copy, drop {
     amount_mist: u64,
 }
 
+public struct FragmentRegistered has copy, drop {
+    document_id: ID,
+    fragment_id: ID,
+    line_start: u64,
+    line_end: u64,
+}
+
 /// Creates a shared commitment: data is fetched from Walrus, but validated
 /// against this immutable Merkle root.
 public entry fun register_document(
@@ -104,6 +123,33 @@ public entry fun register_document(
     transfer::share_object(document);
 }
 
+/// Publishes one fixed, already Seal-encrypted sellable fragment.
+public entry fun register_fragment(
+    document: &Document,
+    seal_identity: vector<u8>,
+    line_start: u64,
+    line_end: u64,
+    walrus_blob_id: vector<u8>,
+    ctx: &mut TxContext,
+) {
+    assert!(ctx.sender() == document.owner, EUnauthorized);
+    assert!(line_start <= line_end && line_end < document.line_count, EInvalidRange);
+    assert!(!seal_identity.is_empty() && !walrus_blob_id.is_empty(), EEmptyBlobId);
+
+    let document_id = object::id(document);
+    let fragment = Fragment {
+        id: object::new(ctx),
+        document_id,
+        seal_identity,
+        line_start,
+        line_end,
+        walrus_blob_id,
+    };
+    let fragment_id = object::id(&fragment);
+    event::emit(FragmentRegistered { document_id, fragment_id, line_start, line_end });
+    transfer::share_object(fragment);
+}
+
 /// Pays the publisher and publishes a one-use proof that authorizes release of
 /// precisely this range. The payment object must contain the exact sale price.
 public entry fun purchase_range(
@@ -123,6 +169,7 @@ public entry fun purchase_range(
     let purchase = Purchase {
         id: object::new(ctx),
         document_id,
+        fragment_id: option::none(),
         buyer,
         line_start,
         line_end,
@@ -138,6 +185,45 @@ public entry fun purchase_range(
         buyer,
         line_start,
         line_end,
+        amount_mist,
+    });
+    transfer::share_object(purchase);
+}
+
+/// Pays for a fixed publisher-encrypted fragment and records its exact range.
+public entry fun purchase_fragment(
+    document: &Document,
+    fragment: &Fragment,
+    payment: Coin<SUI>,
+    clock: &Clock,
+    ctx: &mut TxContext,
+) {
+    let document_id = object::id(document);
+    assert!(fragment.document_id == document_id, EWrongFragment);
+    let fragment_id = object::id(fragment);
+    let amount_mist = (fragment.line_end - fragment.line_start + 1) * document.price_per_line_mist;
+    assert!(coin::value(&payment) == amount_mist, EInvalidPayment);
+
+    let buyer = ctx.sender();
+    let purchase = Purchase {
+        id: object::new(ctx),
+        document_id,
+        fragment_id: option::some(fragment_id),
+        buyer,
+        line_start: fragment.line_start,
+        line_end: fragment.line_end,
+        amount_mist,
+        consumed: false,
+        timestamp_ms: clock.timestamp_ms(),
+    };
+    let purchase_id = object::id(&purchase);
+    transfer::public_transfer(payment, document.owner);
+    event::emit(RangePurchased {
+        document_id,
+        purchase_id,
+        buyer,
+        line_start: fragment.line_start,
+        line_end: fragment.line_end,
         amount_mist,
     });
     transfer::share_object(purchase);
@@ -186,6 +272,51 @@ public entry fun record_disclosure(
     transfer::transfer(disclosure, buyer);
 }
 
+/// Records provenance for a pre-encrypted fixed fragment without reading its plaintext.
+public entry fun record_fragment_disclosure(
+    document: &Document,
+    fragment: &Fragment,
+    purchase: &mut Purchase,
+    clock: &Clock,
+    ctx: &mut TxContext,
+) {
+    assert!(ctx.sender() == document.owner, EUnauthorized);
+    let document_id = object::id(document);
+    assert!(fragment.document_id == document_id && purchase.document_id == document_id, EWrongFragment);
+    assert!(purchase.fragment_id == option::some(object::id(fragment)), EWrongFragment);
+    assert!(
+        purchase.line_start == fragment.line_start && purchase.line_end == fragment.line_end,
+        EWrongFragment,
+    );
+    assert!(!purchase.consumed, EPurchaseConsumed);
+    purchase.consumed = true;
+
+    let purchase_id = object::id(purchase);
+    let buyer = purchase.buyer;
+    let line_start = purchase.line_start;
+    let line_end = purchase.line_end;
+    let disclosure = Disclosure {
+        id: object::new(ctx),
+        document_id,
+        purchase_id,
+        buyer,
+        line_start,
+        line_end,
+        walrus_capsule_blob: fragment.walrus_blob_id,
+        timestamp_ms: clock.timestamp_ms(),
+    };
+    let disclosure_id = object::id(&disclosure);
+    event::emit(DisclosureRecorded {
+        document_id,
+        purchase_id,
+        disclosure_id,
+        buyer,
+        line_start,
+        line_end,
+    });
+    transfer::transfer(disclosure, buyer);
+}
+
 /// Seal authorization for a paid capsule encrypted under its Purchase ID.
 /// This is deliberately read-only so the buyer can retrieve the capsule again.
 entry fun seal_approve(
@@ -195,6 +326,25 @@ entry fun seal_approve(
 ) {
     assert!(ctx.sender() == purchase.buyer, EUnauthorized);
     assert!(id == object::id(purchase).to_bytes(), EWrongPurchase);
+}
+
+/// Seal authorization for a pre-encrypted fragment after a matching purchase.
+entry fun seal_approve_fragment(
+    id: vector<u8>,
+    document: &Document,
+    fragment: &Fragment,
+    purchase: &Purchase,
+    ctx: &TxContext,
+) {
+    let document_id = object::id(document);
+    assert!(ctx.sender() == purchase.buyer, EUnauthorized);
+    assert!(fragment.document_id == document_id && purchase.document_id == document_id, EWrongFragment);
+    assert!(purchase.fragment_id == option::some(object::id(fragment)), EWrongFragment);
+    assert!(
+        purchase.line_start == fragment.line_start && purchase.line_end == fragment.line_end,
+        EWrongFragment,
+    );
+    assert!(id == fragment.seal_identity, EWrongFragment);
 }
 
 public fun root_hash(document: &Document): &vector<u8> {

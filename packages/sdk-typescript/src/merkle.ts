@@ -156,6 +156,12 @@ export async function verifyCapsule(capsule: DisclosureCapsule): Promise<VerifyR
   if (!inclusion.valid) {
     return inclusion;
   }
+  if (capsule.disclosureMode === "publisher-sealed-fragment" && !capsule.signature && !capsule.signerPublicKey) {
+    return inclusion;
+  }
+  if (!capsule.signature || !capsule.signerPublicKey) {
+    return { ...inclusion, valid: false, reason: "Capsule attestation is missing" };
+  }
   const { signature, signerPublicKey, ...unsignedCapsule } = capsule;
   try {
     const pemPayload = signerPublicKey

@@ -3,6 +3,7 @@ import type {
   DocumentListing,
   GenerateDisclosureRequest,
   PublishDocumentRequest,
+  PublishSealedDocumentRequest,
   PurchaseReceipt,
   PurchaseRequest,
   StoredCapsule,
@@ -33,6 +34,13 @@ export class MarketplaceClient {
 
   uploadDocument(request: PublishDocumentRequest): Promise<DocumentListing> {
     return jsonRequest<DocumentListing>(`${this.disclosureHostUrl}/documents/upload`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  uploadSealedDocument(request: PublishSealedDocumentRequest): Promise<DocumentListing> {
+    return jsonRequest<DocumentListing>(`${this.disclosureHostUrl}/documents/upload-sealed-fragments`, {
       method: "POST",
       body: JSON.stringify(request),
     });

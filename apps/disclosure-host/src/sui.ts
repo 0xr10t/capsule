@@ -41,6 +41,10 @@ function rootBytes(rootHash: string): number[] {
   return Array.from(Buffer.from(rootHash, "hex"));
 }
 
+function hexBytes(value: string): number[] {
+  return Array.from(Buffer.from(value, "hex"));
+}
+
 function requiredObjectId(
   changes: Awaited<ReturnType<SuiJsonRpcClient["signAndExecuteTransaction"]>>["objectChanges"],
   objectType: string,
@@ -123,6 +127,39 @@ export class SuiAnchorProvider {
     };
   }
 
+  async registerFragment(
+    documentId: string,
+    sealIdentity: string,
+    lineStart: number,
+    lineEnd: number,
+    blobId: string,
+  ): Promise<ChainRecord> {
+    const transaction = new Transaction();
+    transaction.moveCall({
+      target: `${this.packageId}::capsule::register_fragment`,
+      arguments: [
+        transaction.object(documentId),
+        transaction.pure.vector("u8", hexBytes(sealIdentity)),
+        transaction.pure.u64(lineStart),
+        transaction.pure.u64(lineEnd),
+        transaction.pure.vector("u8", bytes(blobId)),
+      ],
+    });
+    const result = await this.client.signAndExecuteTransaction({
+      signer: this.signer,
+      transaction,
+      options: { showEffects: true, showObjectChanges: true },
+    });
+    if (result.effects?.status.status !== "success") {
+      throw new Error("Sui rejected fragment registration transaction");
+    }
+    await this.client.waitForTransaction({ digest: result.digest });
+    return {
+      objectId: requiredObjectId(result.objectChanges, `${this.packageId}::capsule::Fragment`),
+      transactionDigest: result.digest,
+    };
+  }
+
   async recordDisclosure(
     documentId: string,
     purchaseId: string,
@@ -145,6 +182,36 @@ export class SuiAnchorProvider {
     });
     if (result.effects?.status.status !== "success") {
       throw new Error("Sui rejected disclosure provenance transaction");
+    }
+    await this.client.waitForTransaction({ digest: result.digest });
+    return {
+      objectId: requiredObjectId(result.objectChanges, `${this.packageId}::capsule::Disclosure`),
+      transactionDigest: result.digest,
+    };
+  }
+
+  async recordFragmentDisclosure(
+    documentId: string,
+    fragmentId: string,
+    purchaseId: string,
+  ): Promise<ChainRecord> {
+    const transaction = new Transaction();
+    transaction.moveCall({
+      target: `${this.packageId}::capsule::record_fragment_disclosure`,
+      arguments: [
+        transaction.object(documentId),
+        transaction.object(fragmentId),
+        transaction.object(purchaseId),
+        transaction.object.clock(),
+      ],
+    });
+    const result = await this.client.signAndExecuteTransaction({
+      signer: this.signer,
+      transaction,
+      options: { showEffects: true, showObjectChanges: true },
+    });
+    if (result.effects?.status.status !== "success") {
+      throw new Error("Sui rejected encrypted fragment disclosure transaction");
     }
     await this.client.waitForTransaction({ digest: result.digest });
     return {

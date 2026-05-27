@@ -63,6 +63,7 @@ button {
 
 .field input,
 .field textarea,
+.field select,
 .source-editor {
   @apply rounded-lg border border-white/10 bg-slate-950/45 px-3 py-2.5 font-sans text-sm tracking-normal text-slate-100 outline-none transition focus:border-teal-300/60;
 }

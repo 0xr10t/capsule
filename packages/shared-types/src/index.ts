@@ -6,6 +6,17 @@ export interface LineRange {
   end: number;
 }
 
+export type PublicationMode = "host-generated" | "publisher-sealed-fragments";
+
+export interface PublishedFragment {
+  range: LineRange;
+  sealIdentity: string;
+  encryptedBlobId: BlobId;
+  walrusBlobObjectId?: string;
+  suiFragmentId?: string;
+  registrationTx?: string;
+}
+
 export interface DocumentListing {
   id: string;
   title: string;
@@ -19,6 +30,8 @@ export interface DocumentListing {
   suiDocumentId?: string;
   documentTx?: string;
   pricePerLineMist: string;
+  publicationMode?: PublicationMode;
+  fragments?: PublishedFragment[];
   createdAt: string;
 }
 
@@ -30,6 +43,7 @@ export interface PurchaseReceipt {
   amountMist: string;
   paymentTx: string;
   suiPurchaseId?: string;
+  suiFragmentId?: string;
   createdAt: string;
 }
 
@@ -61,14 +75,15 @@ export interface DisclosureCapsule {
   disclosedContent: string[];
   proof: MerkleRangeProof;
   createdAt: string;
-  signature: string;
-  signerPublicKey: string;
+  signature?: string;
+  signerPublicKey?: string;
   paymentTx: string;
   suiPurchaseId?: string;
   buyer: string;
   publisher: string;
   suiDocumentId?: string;
   suiDisclosureId?: string;
+  disclosureMode?: "host-generated" | "publisher-sealed-fragment";
 }
 
 export interface StoredCapsule {
@@ -84,6 +99,7 @@ export interface CapsuleSummary {
   capsuleId: string;
   documentId: string;
   rootHash: HexHash;
+  documentBlobId?: BlobId;
   lineRange: LineRange;
   createdAt: string;
   paymentTx: string;
@@ -91,6 +107,7 @@ export interface CapsuleSummary {
   buyer: string;
   publisher: string;
   suiDocumentId?: string;
+  suiFragmentId?: string;
 }
 
 export interface SealedCapsuleEnvelope {
@@ -100,6 +117,8 @@ export interface SealedCapsuleEnvelope {
   identity: string;
   encryptedObject: string;
   suiPurchaseId: string;
+  accessPolicy?: "paid-capsule" | "published-fragment";
+  suiFragmentId?: string;
 }
 
 export interface SealedStoredCapsule {
@@ -112,6 +131,30 @@ export interface SealedStoredCapsule {
 }
 
 export type CapsuleRecord = StoredCapsule | SealedStoredCapsule;
+
+export interface PrecomputedFragmentPayload {
+  version: "1";
+  rootHash: HexHash;
+  lineRange: LineRange;
+  disclosedContent: string[];
+  proof: MerkleRangeProof;
+}
+
+export interface PublisherSealedFragment {
+  range: LineRange;
+  envelope: Omit<SealedCapsuleEnvelope, "suiPurchaseId" | "accessPolicy" | "suiFragmentId">;
+}
+
+export interface PublishSealedDocumentRequest {
+  title: string;
+  description: string;
+  publisher: string;
+  category: string;
+  pricePerLineMist: string;
+  lineCount: number;
+  rootHash: HexHash;
+  fragments: PublisherSealedFragment[];
+}
 
 export interface PublishDocumentRequest {
   title: string;
@@ -128,6 +171,7 @@ export interface PurchaseRequest {
   range: LineRange;
   paymentTx?: string;
   suiPurchaseId?: string;
+  suiFragmentId?: string;
 }
 
 export interface GenerateDisclosureRequest {

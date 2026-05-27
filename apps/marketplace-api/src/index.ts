@@ -18,6 +18,15 @@ const rangeSchema = z.object({
   end: z.number().int().nonnegative(),
 }).refine(({ start, end }) => start <= end, "Line range start must not exceed end");
 
+const fragmentSchema = z.object({
+  range: rangeSchema,
+  sealIdentity: z.string().regex(/^[\da-f]+$/i),
+  encryptedBlobId: z.string().min(1),
+  walrusBlobObjectId: z.string().optional(),
+  suiFragmentId: z.string().optional(),
+  registrationTx: z.string().optional(),
+});
+
 const listingSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -31,6 +40,8 @@ const listingSchema = z.object({
   suiDocumentId: z.string().optional(),
   documentTx: z.string().optional(),
   pricePerLineMist: z.string().regex(/^\d+$/),
+  publicationMode: z.enum(["host-generated", "publisher-sealed-fragments"]).optional(),
+  fragments: z.array(fragmentSchema).optional(),
   createdAt: z.string().datetime(),
 });
 
@@ -40,6 +51,7 @@ const purchaseSchema = z.object({
   range: rangeSchema,
   paymentTx: z.string().optional(),
   suiPurchaseId: z.string().optional(),
+  suiFragmentId: z.string().optional(),
 });
 
 app.use(cors());
@@ -88,6 +100,17 @@ app.post("/purchase", (request, response) => {
     response.status(400).json({ error: "Purchased range is outside this document" });
     return;
   }
+  if (listing.publicationMode === "publisher-sealed-fragments") {
+    const fragment = listing.fragments?.find((item) =>
+      item.suiFragmentId === result.data.suiFragmentId &&
+      item.range.start === result.data.range.start &&
+      item.range.end === result.data.range.end
+    );
+    if (!fragment?.suiFragmentId) {
+      response.status(400).json({ error: "Purchase must target a registered encrypted fragment" });
+      return;
+    }
+  }
   const requiresChainPayment = process.env.PROTOCOL_MODE === "testnet" && Boolean(listing.suiDocumentId);
   if (requiresChainPayment && (!result.data.paymentTx || !result.data.suiPurchaseId)) {
     response.status(400).json({ error: "Testnet disclosures require an on-chain Sui purchase receipt" });
@@ -102,6 +125,7 @@ app.post("/purchase", (request, response) => {
     amountMist: (selectedLines * BigInt(listing.pricePerLineMist)).toString(),
     paymentTx: result.data.paymentTx ?? `demo-payment-${randomUUID()}`,
     suiPurchaseId: result.data.suiPurchaseId,
+    suiFragmentId: result.data.suiFragmentId,
     createdAt: new Date().toISOString(),
   };
   store.addPurchase(receipt);

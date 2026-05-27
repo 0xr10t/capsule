@@ -10,7 +10,9 @@ import type {
   DisclosureCapsule,
   DocumentListing,
   EncryptedDocumentEnvelope,
+  PublishedFragment,
   PurchaseReceipt,
+  PublishSealedDocumentRequest,
   SealedCapsuleEnvelope,
 } from "@capsule/shared-types";
 import { z } from "zod";
@@ -36,6 +38,31 @@ const publishSchema = z.object({
   category: z.string().min(1),
   pricePerLineMist: z.string().regex(/^\d+$/),
   content: z.string().min(1),
+});
+
+const lineRangeSchema = z.object({
+  start: z.number().int().nonnegative(),
+  end: z.number().int().nonnegative(),
+}).refine(({ start, end }) => start <= end, "Fragment range start must not exceed end");
+
+const publishSealedSchema = z.object({
+  title: z.string().min(1),
+  description: z.string(),
+  publisher: z.string().min(1),
+  category: z.string().min(1),
+  pricePerLineMist: z.string().regex(/^\d+$/),
+  lineCount: z.number().int().positive(),
+  rootHash: z.string().regex(/^[\da-f]{64}$/i),
+  fragments: z.array(z.object({
+    range: lineRangeSchema,
+    envelope: z.object({
+      version: z.literal("1"),
+      algorithm: z.literal("SEAL"),
+      packageId: z.string().min(1),
+      identity: z.string().regex(/^[\da-f]+$/i),
+      encryptedObject: z.string().min(1),
+    }),
+  })).min(1),
 });
 
 async function marketplaceRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -88,6 +115,7 @@ app.post("/documents/upload", async (request, response) => {
       suiDocumentId: chainRecord?.objectId,
       documentTx: chainRecord?.transactionDigest,
       pricePerLineMist: input.pricePerLineMist,
+      publicationMode: "host-generated",
       createdAt: new Date().toISOString(),
     };
     await marketplaceRequest<DocumentListing>("/internal/documents", {
@@ -98,6 +126,82 @@ app.post("/documents/upload", async (request, response) => {
     response.status(201).json(listing);
   } catch (error) {
     response.status(400).json({ error: error instanceof Error ? error.message : "Document upload failed" });
+  }
+});
+
+app.post("/documents/upload-sealed-fragments", async (request, response) => {
+  try {
+    if (!sui || process.env.PROTOCOL_MODE !== "testnet") {
+      throw new Error("Publisher-sealed fragments require Sui testnet mode");
+    }
+    const input = publishSealedSchema.parse(request.body) as PublishSealedDocumentRequest;
+    if (input.fragments.some(({ range }) => range.end >= input.lineCount)) {
+      throw new Error("A fragment range is outside this document");
+    }
+    if (input.fragments.some(({ envelope }) => envelope.packageId !== process.env.SUI_PACKAGE_ID)) {
+      throw new Error("Sealed fragments must use the configured Capsule policy package");
+    }
+    const orderedRanges = input.fragments.map(({ range }) => range).sort((left, right) => left.start - right.start);
+    if (orderedRanges.some((range, index) => index > 0 && range.start <= orderedRanges[index - 1]!.end)) {
+      throw new Error("Sealed fragment ranges must not overlap");
+    }
+    const uploaded: PublishedFragment[] = [];
+    for (const fragment of input.fragments) {
+      const blob = await storage.uploadBlob(Buffer.from(JSON.stringify(fragment.envelope)));
+      uploaded.push({
+        range: fragment.range,
+        sealIdentity: fragment.envelope.identity,
+        encryptedBlobId: blob.blobId,
+        walrusBlobObjectId: blob.suiObjectId,
+      });
+    }
+    const manifestBlob = await storage.uploadBlob(Buffer.from(JSON.stringify({
+      version: "1",
+      publicationMode: "publisher-sealed-fragments",
+      rootHash: input.rootHash,
+      fragments: uploaded,
+    })));
+    const chainDocument = await sui.registerDocument(
+      input.rootHash,
+      manifestBlob.blobId,
+      input.lineCount,
+      input.pricePerLineMist,
+    );
+    for (const fragment of uploaded) {
+      const registration = await sui.registerFragment(
+        chainDocument.objectId,
+        fragment.sealIdentity,
+        fragment.range.start,
+        fragment.range.end,
+        fragment.encryptedBlobId,
+      );
+      fragment.suiFragmentId = registration.objectId;
+      fragment.registrationTx = registration.transactionDigest;
+    }
+    const listing: DocumentListing = {
+      id: randomUUID(),
+      title: input.title,
+      description: input.description,
+      publisher: sui.address,
+      category: input.category,
+      lineCount: input.lineCount,
+      rootHash: input.rootHash,
+      encryptedBlobId: manifestBlob.blobId,
+      walrusBlobObjectId: manifestBlob.suiObjectId,
+      suiDocumentId: chainDocument.objectId,
+      documentTx: chainDocument.transactionDigest,
+      pricePerLineMist: input.pricePerLineMist,
+      publicationMode: "publisher-sealed-fragments",
+      fragments: uploaded,
+      createdAt: new Date().toISOString(),
+    };
+    await marketplaceRequest<DocumentListing>("/internal/documents", {
+      method: "POST",
+      body: JSON.stringify(listing),
+    });
+    response.status(201).json(listing);
+  } catch (error) {
+    response.status(400).json({ error: error instanceof Error ? error.message : "Sealed document upload failed" });
   }
 });
 
@@ -124,6 +228,59 @@ app.post("/disclosure/generate", async (request, response) => {
       if (chainPurchase.consumed) {
         throw new Error("Sui Purchase object has already been disclosed");
       }
+    }
+    if (listing.publicationMode === "publisher-sealed-fragments") {
+      const fragment = listing.fragments?.find((item) =>
+        item.suiFragmentId === purchase.suiFragmentId &&
+        item.range.start === purchase.range.start &&
+        item.range.end === purchase.range.end
+      );
+      if (!sui || !listing.suiDocumentId || !purchase.suiPurchaseId || !fragment?.suiFragmentId) {
+        throw new Error("Paid purchase does not identify an available sealed fragment");
+      }
+      const envelopeBytes = await storage.fetchBlob(fragment.encryptedBlobId);
+      const envelope = JSON.parse(Buffer.from(envelopeBytes).toString("utf8")) as Omit<
+        SealedCapsuleEnvelope,
+        "suiPurchaseId" | "accessPolicy" | "suiFragmentId"
+      >;
+      const summary: CapsuleSummary = {
+        capsuleId: randomUUID(),
+        documentId: listing.id,
+        documentBlobId: listing.encryptedBlobId,
+        rootHash: listing.rootHash,
+        lineRange: purchase.range,
+        createdAt: new Date().toISOString(),
+        paymentTx: purchase.paymentTx,
+        suiPurchaseId: purchase.suiPurchaseId,
+        buyer: purchase.buyer,
+        publisher: listing.publisher,
+        suiDocumentId: listing.suiDocumentId,
+        suiFragmentId: fragment.suiFragmentId,
+      };
+      const chainRecord = await sui.recordFragmentDisclosure(
+        listing.suiDocumentId,
+        fragment.suiFragmentId,
+        purchase.suiPurchaseId,
+      );
+      const stored: CapsuleRecord = {
+        summary,
+        sealedCapsule: {
+          ...envelope,
+          suiPurchaseId: purchase.suiPurchaseId,
+          accessPolicy: "published-fragment",
+          suiFragmentId: fragment.suiFragmentId,
+        },
+        capsuleBlobId: fragment.encryptedBlobId,
+        walrusBlobObjectId: fragment.walrusBlobObjectId,
+        suiDisclosureId: chainRecord.objectId,
+        disclosureTx: chainRecord.transactionDigest,
+      };
+      await marketplaceRequest<CapsuleRecord>("/internal/capsules", {
+        method: "POST",
+        body: JSON.stringify(stored),
+      });
+      response.status(201).json(stored);
+      return;
     }
     const key = documentKeys.get(listing.id);
     if (!key) {
@@ -158,6 +315,7 @@ app.post("/disclosure/generate", async (request, response) => {
       ? {
           capsuleId: capsule.capsuleId,
           documentId: capsule.documentId,
+          documentBlobId: capsule.documentBlobId,
           rootHash: capsule.rootHash,
           lineRange: capsule.lineRange,
           createdAt: capsule.createdAt,

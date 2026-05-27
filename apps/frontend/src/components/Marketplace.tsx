@@ -25,6 +25,10 @@ function PurchasePanel({ listing }: { listing: DocumentListing }) {
   const [buyer, setBuyer] = useState("0xai-agent-demo");
   const [start, setStart] = useState(1);
   const [end, setEnd] = useState(Math.min(2, listing.lineCount));
+  const [selectedFragmentIndex, setSelectedFragmentIndex] = useState(0);
+  const fixedFragment = listing.publicationMode === "publisher-sealed-fragments"
+    ? listing.fragments?.[selectedFragmentIndex]
+    : undefined;
   const mutation = useMutation({
     mutationFn: async (purchase: PurchaseRequest) => {
       let authorizedPurchase = purchase;
@@ -38,16 +42,31 @@ function PurchasePanel({ listing }: { listing: DocumentListing }) {
         const amountMist = BigInt(purchase.range.end - purchase.range.start + 1) * BigInt(listing.pricePerLineMist);
         const transaction = new Transaction();
         const [payment] = transaction.splitCoins(transaction.gas, [transaction.pure.u64(amountMist)]);
-        transaction.moveCall({
-          target: `${packageId}::capsule::purchase_range`,
-          arguments: [
-            transaction.object(listing.suiDocumentId),
-            transaction.pure.u64(purchase.range.start),
-            transaction.pure.u64(purchase.range.end),
-            payment,
-            transaction.object.clock(),
-          ],
-        });
+        if (listing.publicationMode === "publisher-sealed-fragments") {
+          if (!fixedFragment?.suiFragmentId) {
+            throw new Error("Select a registered encrypted fragment before purchasing.");
+          }
+          transaction.moveCall({
+            target: `${packageId}::capsule::purchase_fragment`,
+            arguments: [
+              transaction.object(listing.suiDocumentId),
+              transaction.object(fixedFragment.suiFragmentId),
+              payment,
+              transaction.object.clock(),
+            ],
+          });
+        } else {
+          transaction.moveCall({
+            target: `${packageId}::capsule::purchase_range`,
+            arguments: [
+              transaction.object(listing.suiDocumentId),
+              transaction.pure.u64(purchase.range.start),
+              transaction.pure.u64(purchase.range.end),
+              payment,
+              transaction.object.clock(),
+            ],
+          });
+        }
         const execution = await walletTransaction.mutateAsync({
           transaction,
           chain: import.meta.env.VITE_SUI_NETWORK === "mainnet" ? "sui:mainnet" : "sui:testnet",
@@ -63,6 +82,7 @@ function PurchasePanel({ listing }: { listing: DocumentListing }) {
           buyer: account.address,
           paymentTx: execution.digest,
           suiPurchaseId: createdPurchase.objectId,
+          suiFragmentId: fixedFragment?.suiFragmentId,
         };
       }
       const receipt = await capsuleClient.purchaseDisclosure(authorizedPurchase);
@@ -90,7 +110,8 @@ function PurchasePanel({ listing }: { listing: DocumentListing }) {
         mutation.mutate({
           documentId: listing.id,
           buyer: isAnchoredListing && account ? account.address : buyer,
-          range: { start: start - 1, end: end - 1 },
+          range: fixedFragment?.range ?? { start: start - 1, end: end - 1 },
+          suiFragmentId: fixedFragment?.suiFragmentId,
         });
       }}
     >
@@ -104,26 +125,44 @@ function PurchasePanel({ listing }: { listing: DocumentListing }) {
             required
           />
         </label>
-        <label className="field w-20">
-          From
-          <input
-            min={1}
-            max={listing.lineCount}
-            type="number"
-            value={start}
-            onChange={(event) => setStart(Number(event.target.value))}
-          />
-        </label>
-        <label className="field w-20">
-          To
-          <input
-            min={start}
-            max={listing.lineCount}
-            type="number"
-            value={end}
-            onChange={(event) => setEnd(Number(event.target.value))}
-          />
-        </label>
+        {listing.publicationMode === "publisher-sealed-fragments" ? (
+          <label className="field w-52">
+            Encrypted section
+            <select
+              onChange={(event) => setSelectedFragmentIndex(Number(event.target.value))}
+              value={selectedFragmentIndex}
+            >
+              {listing.fragments?.map((fragment, index) => (
+                <option key={fragment.sealIdentity} value={index}>
+                  Lines {fragment.range.start + 1}-{fragment.range.end + 1}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <>
+            <label className="field w-20">
+              From
+              <input
+                min={1}
+                max={listing.lineCount}
+                type="number"
+                value={start}
+                onChange={(event) => setStart(Number(event.target.value))}
+              />
+            </label>
+            <label className="field w-20">
+              To
+              <input
+                min={start}
+                max={listing.lineCount}
+                type="number"
+                value={end}
+                onChange={(event) => setEnd(Number(event.target.value))}
+              />
+            </label>
+          </>
+        )}
       </div>
       <button className="primary-button" disabled={mutation.isPending || (isAnchoredListing && !account)} type="submit">
         {mutation.isPending
@@ -218,6 +257,7 @@ export function Marketplace() {
               <span>{listing.lineCount} lines</span>
               <span title={listing.rootHash}>root {listing.rootHash.slice(0, 10)}...</span>
               {listing.suiDocumentId && <span className="text-teal-300">Sui anchored</span>}
+              {listing.publicationMode === "publisher-sealed-fragments" && <span className="text-teal-300">Source keyless</span>}
             </div>
             <PurchasePanel listing={listing} />
           </article>

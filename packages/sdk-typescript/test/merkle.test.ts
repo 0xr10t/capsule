@@ -55,4 +55,29 @@ describe("Capsule merkle proofs", () => {
       reason: "Capsule attestation signature is invalid",
     });
   });
+
+  it("verifies publisher-sealed fragments from their committed root without a host signature", async () => {
+    const proof = await generateRangeProof(lines, 2, 2);
+    const { rootHash } = await buildMerkleTree(lines);
+    const sealedFragment: DisclosureCapsule = {
+      version: "1",
+      capsuleId: "sealed-fragment",
+      documentId: "document-fixture",
+      documentBlobId: "manifest-fixture",
+      rootHash,
+      lineRange: { start: 2, end: 2 },
+      disclosedContent: ["gamma"],
+      proof,
+      createdAt: "2026-05-27T00:00:00.000Z",
+      paymentTx: "0xtx",
+      buyer: "0xbuyer",
+      publisher: "0xpublisher",
+      disclosureMode: "publisher-sealed-fragment",
+    };
+    expect(await verifyCapsule(sealedFragment)).toMatchObject({ valid: true });
+    expect(await verifyCapsule({ ...sealedFragment, disclosureMode: undefined })).toMatchObject({
+      valid: false,
+      reason: "Capsule attestation is missing",
+    });
+  });
 });

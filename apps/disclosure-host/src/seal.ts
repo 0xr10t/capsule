@@ -44,6 +44,7 @@ export class CapsuleSealer {
       identity: suiPurchaseId,
       encryptedObject: Buffer.from(encryptedObject).toString("base64"),
       suiPurchaseId,
+      accessPolicy: "paid-capsule",
     };
   }
 }
