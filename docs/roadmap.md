@@ -1,48 +1,48 @@
 # Protocol Upgrade Roadmap
 
-## Current Milestone: Paid Verifiable Disclosure
+## Current Milestone: Source-Keyless Fixed-Fragment Disclosure
 
 Capsule now covers the public audit path required for a credible testnet demo:
 
-- permanent encrypted source and capsule storage on Walrus;
+- permanent encrypted fragment, manifest, and delivery storage on Walrus;
 - document root and capsule provenance objects on Sui;
 - exact-price SUI payments from the buyer wallet;
 - a one-use shared `Purchase` object required by `record_disclosure`;
 - Seal-encrypted paid capsules stored on Walrus and decrypted by the paid
   buyer through the `seal_approve` Sui policy;
+- publisher-side Seal-encrypted fixed fragments, purchased through
+  fragment-bound receipts and decrypted through `seal_approve_fragment`;
 - local proof and on-chain root verification.
 
-The remaining central trust assumption is that the disclosure host currently
-holds the AES key used to decrypt an original source before producing the
-purchased fragment.
+The disclosure host no longer receives source plaintext or a document key in
+the fixed-fragment mode. The older arbitrary-range AES route remains as a
+compatibility/demo mode and should not be used as the trust-minimized product
+path.
 
-## Seal Status: Delivery Implemented, Source Custody Next
+## Seal Status: Fixed-Fragment Path Implemented
 
 The implemented Seal path protects the purchased capsule after it has been
 generated: the capsule is encrypted under its paid `Purchase` object ID,
 stored on Walrus as ciphertext, and decrypted locally only by the recorded
 buyer. This fixes public exposure of issued paid capsules.
 
-It does not by itself remove the disclosure host's access to the source
-document. Seal must not grant a buyer access to the complete source when that
-buyer paid for only lines 20-25; doing so would violate selective disclosure.
-
-The compatible target design is fragment-level encryption:
+The source-keyless fragment design is now implemented:
 
 1. At publication, the publisher selects purchasable sections and builds the
    root over the original line ordering.
 2. The publisher encrypts each sellable fragment with Seal using an identity
    that binds document ID and range, then stores encrypted fragments on Walrus.
-3. `purchase_range` creates the paid Sui authorization for one fragment.
-4. A Capsule `seal_approve` policy authorizes decryption only when the
-   requesting wallet is the buyer in a matching paid `Purchase` object.
+3. `purchase_fragment` creates a paid Sui authorization bound to exactly one
+   registered `Fragment`.
+4. `seal_approve_fragment` authorizes decryption only when the requesting
+   wallet owns a matching fragment-bound paid `Purchase` object.
 5. The buyer decrypts only that fragment through Seal and locally verifies its
    Merkle proof against the Sui document commitment.
 
-This removes document-key custody from the disclosure host while preserving the
-core promise. Arbitrary ad hoc line ranges require either per-line encrypted
-fragments, publisher-online capsule generation, or a trusted computation
-environment; fixed purchasable sections are the practical hackathon version.
+This removes document-key custody from the disclosure host while preserving
+the core promise for fixed purchasable sections. Arbitrary ad hoc line ranges
+still require per-line encrypted fragments, publisher-online generation, or a
+trusted computation environment.
 
 Official reference: [Seal documentation](https://seal-docs.wal.app/).
 
@@ -52,7 +52,7 @@ Official reference: [Seal documentation](https://seal-docs.wal.app/).
 | --- | --- | --- |
 | Complete | Sui paid purchase receipts and wallet signing | Makes each paid disclosure observable and enforceable on-chain |
 | Complete | Seal-encrypted paid capsules plus `seal_approve` | Prevents public disclosure payload exposure and proves paid-buyer gating |
-| Next | Publisher-side Seal-encrypted purchasable fragments | Removes the in-process source key without exposing full documents |
+| Complete | Publisher-side Seal-encrypted purchasable fragments | Removes the in-process source key without exposing full documents |
 | Next | PostgreSQL persistence and indexed chain reconciliation | Prevents listings and operational state from disappearing on restart |
 | Then | MCP server around listing, fetch, and verify tools | Provides a concrete AI-agent demonstration after payment/decryption contracts stabilize |
 | Then | Walrus Site frontend deployment | Makes the public demo itself verifiable through the Walrus stack |
@@ -75,9 +75,8 @@ apparently read-only agent action.
 ## Walrus Site Deployment
 
 A Walrus Site is worthwhile once the payment-enabled frontend and environment
-configuration are stable. It is high-signal distribution, but it does not
-replace the higher-priority Seal change: publishing the UI on Walrus does not
-remove the disclosure host's access to plaintext.
+configuration are stable. It is high-signal distribution, but durable metadata
+and chain reconciliation remain more important for a reliable marketplace.
 
 On testnet, visitors need a self-hosted or third-party portal; the
 Mysten-operated `wal.app` portal serves mainnet sites with a SuiNS name.

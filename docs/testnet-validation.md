@@ -145,3 +145,48 @@ Local Merkle verification of the decrypted capsule returned `valid: true`.
 This integration protects delivered capsule content at rest and gates its
 decryption to the paid buyer. It does not yet remove the disclosure host's AES
 access to the original source document while it extracts a requested range.
+
+## Publisher-Sealed Fixed Fragment Upgrade
+
+Validated on May 27, 2026 with the source-keyless fixed-fragment path. The
+validation constructed the Merkle proof and Seal ciphertext before calling the
+host endpoint; the request contained no plaintext `content` field. The signer
+acted as both publisher and automated buyer during this synthetic test.
+
+| Artifact | Public identifier |
+| --- | --- |
+| Fixed-fragment Capsule package | `0xd7fbb00bee87bbc0f9f4a196dac5f6607cc22f11157e6ed9e24dfd9cd02f4112` |
+| Package publish transaction | `Byn8XZrEqQdoP67voZhQkhw1ATb34HRBKek7sLCE1P9Z` |
+| Document manifest Walrus blob | `-6jQwIl5qo2amt9DCnQcwC-K76hFKPrATNAhYN3NTD4` |
+| Sui Document object | `0x2a8769dd14306288c9debcd587b07923d1c4d1fa96ea368b427f7860b0274262` |
+| Document registration transaction | `J27dFpu1NgsaDUALWidq3XALg2UwYMCMhoGFxpNkGM75` |
+| Encrypted fragment Walrus blob | `YjFJYV37rpX9XE9qm9UI_rcCJ7xiNC6K39Qb8dPYYu4` |
+| Sui Fragment object | `0x678194bd04275dd5b6c35a7956c37364bee83adc336f67c2629e7d8c4c380a4f` |
+| Fragment registration transaction | `D1PAdqCsZ4DVqjoFK76Mj5jBZAxszpyoEwQ8wRcTwNV9` |
+| Fragment-bound Purchase object | `0x125376c66e5afed0b3e42e3fb2b4992059a5336d28a26020e6dea04be62e194a` |
+| Payment transaction | `AsVFwTBv4oNJVxeF9hziNZu1N8nRokfokaD39wQsBQxD` |
+| Encrypted delivery Walrus blob | `QFkdFayU0fhlnkFKYLk-oXNDSbtGUyJBtZj6pD4liuI` |
+| Sui Disclosure object | `0xa8d4dc5441f7edafb0b561d311c0b6c910480b7bcb5ada1c43c1620de7220f08` |
+| Disclosure record transaction | `G7cXhnPWbJsqmbGExvnn2uENTtzH8b3Qnv6ShqEkQE1S` |
+
+The encrypted delivery wrapper fetched back from Walrus contained no plaintext
+capsule. The authorized buyer decrypted only:
+
+```text
+fixed-section verified knowledge
+```
+
+Local Merkle verification returned `valid: true`, and API verification against
+the on-chain document root returned `anchored: true`.
+
+An adversarial test then created an otherwise-paid legacy `purchase_range`
+receipt for the same line bounds:
+
+| Artifact | Public identifier |
+| --- | --- |
+| Non-fragment Purchase object | `0xb194f1551813e068a9e99e43fb7b091ef3ee661d3b42451136507aa2503eda19` |
+| Payment transaction | `B3mtxLzGX2Zbww5v4AWbArm1H1zUcD4oHJNNEvo4cNAc` |
+
+Seal decryption was rejected because `seal_approve_fragment` requires the
+paid receipt to be bound to the registered `Fragment`, not merely to have the
+same line range.

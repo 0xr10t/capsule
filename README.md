@@ -18,8 +18,8 @@ verifiable without making it wholly visible:
 - **Selective disclosure:** buyers receive only the purchased line range.
 - **Verifiable content:** SHA-256 Merkle proofs tie each disclosed line to the
   committed original document.
-- **Durable artifacts:** encrypted source envelopes and Seal-protected
-  disclosure capsules are stored on Walrus.
+- **Durable artifacts:** Seal-encrypted sellable fragments and encrypted
+  delivery capsules are stored on Walrus.
 - **Public provenance:** Sui stores document commitments and disclosure
   records.
 - **Agent-ready output:** capsules are stable JSON artifacts suitable for
@@ -32,20 +32,22 @@ testnet and Sui testnet:
 
 | Item | Public identifier |
 | --- | --- |
-| Sui Move package with `seal_approve` | `0xd16496070b726a5bd60f9253b792f45362dab38546898343b31cc58d15207d32` |
-| Package publish transaction | `3hKnmtzAKcjGzDt9BC9sGvCXtCdBynNUHTsfsTFnJDz2` |
-| Anchored Document object | `0x6800dd015d69b094a5c5cda293487030ad9af2194d9fa879d74586e493829e3d` |
-| Paid Purchase object | `0xbd1d858f5f27fbfa3ae31ab7f0f24664c63c01f95081f772d7f286ad23e005a7` |
-| Payment transaction | `DZdg7RJW4CVFLyHc9rHDGdZa2i5jHPCzpUeJc6mqycf6` |
-| Recorded Disclosure object | `0xf3bb5e62ff7105a1b3f497fa50062704d9eb0ab4e85e9c8d47fc76f034deab1b` |
-| Encrypted source Walrus blob | `jYpafS3MD_Q_Kt9sg5Dub6B_wamhwgW76TuOwgtedI0` |
-| Seal-encrypted capsule Walrus blob | `1fS7wkhP8VFwmEuYBiWoIohPHWj7Toh9bJ8ia1YzJ84` |
+| Sui Move package with fixed-fragment policy | `0xd7fbb00bee87bbc0f9f4a196dac5f6607cc22f11157e6ed9e24dfd9cd02f4112` |
+| Package publish transaction | `Byn8XZrEqQdoP67voZhQkhw1ATb34HRBKek7sLCE1P9Z` |
+| Anchored Document object | `0x2a8769dd14306288c9debcd587b07923d1c4d1fa96ea368b427f7860b0274262` |
+| Encrypted Fragment object | `0x678194bd04275dd5b6c35a7956c37364bee83adc336f67c2629e7d8c4c380a4f` |
+| Paid fragment Purchase object | `0x125376c66e5afed0b3e42e3fb2b4992059a5336d28a26020e6dea04be62e194a` |
+| Payment transaction | `AsVFwTBv4oNJVxeF9hziNZu1N8nRokfokaD39wQsBQxD` |
+| Recorded Disclosure object | `0xa8d4dc5441f7edafb0b561d311c0b6c910480b7bcb5ada1c43c1620de7220f08` |
+| Encrypted fragment Walrus blob | `YjFJYV37rpX9XE9qm9UI_rcCJ7xiNC6K39Qb8dPYYu4` |
+| Encrypted delivery Walrus blob | `QFkdFayU0fhlnkFKYLk-oXNDSbtGUyJBtZj6pD4liuI` |
 
-After a real `1,000,000` MIST purchase, the capsule was Seal-encrypted under
-the paid `Purchase` identity and stored on Walrus. Fetching that blob exposed
-no plaintext capsule; the authorized buyer decrypted the selected line through
-Seal and locally verified its Merkle proof. The recorded `Disclosure` stores
-the paid `Purchase` ID for direct provenance inspection. Full public artifacts are recorded in
+On May 27, 2026, the publisher-side flow sent no plaintext `content` field to
+the disclosure host: the browser-produced Seal ciphertext was stored on
+Walrus, registered as a Sui `Fragment`, and sold through a real `1,000,000`
+MIST fragment-bound purchase. The buyer decrypted one selected line through
+Seal and verified it against the Sui root. A separate same-range legacy
+purchase was rejected by the fragment policy. Full public artifacts are recorded in
 [`docs/testnet-validation.md`](docs/testnet-validation.md) and
 [`deployments/sui-testnet.json`](deployments/sui-testnet.json).
 
@@ -63,38 +65,35 @@ sequenceDiagram
     actor Buyer as Buyer / AI Agent
 
     Publisher->>UI: Enter source document and pricing
-    UI->>Host: Upload plaintext document
-    Host->>Host: Split lines and build Merkle root
-    Host->>Host: Encrypt document with AES-256-GCM
-    Host->>Walrus: Upload encrypted source blob
-    Walrus-->>Host: Encrypted blob ID
-    Host->>Sui: register_document(root, blob ID)
+    UI->>UI: Build Merkle root and section proofs
+    UI->>Seal: Encrypt fixed sellable sections locally
+    UI->>Host: Upload ciphertext and public metadata only
+    Host->>Walrus: Upload ciphertext fragments and manifest
+    Walrus-->>Host: Ciphertext blob IDs
+    Host->>Sui: register_document(root, manifest)
+    Host->>Sui: register_fragment(identity, range, blob)
     Sui-->>Host: Document commitment object
     Host->>Market: Register metadata-only listing
 
-    Buyer->>UI: Browse listing and select line range
-    UI->>Sui: purchase_range(document, range, SUI payment)
+    Buyer->>UI: Browse listing and select fixed section
+    UI->>Sui: purchase_fragment(fragment, SUI payment)
     Sui-->>UI: Shared paid Purchase receipt
     UI->>Market: Register purchase receipt metadata
     Market-->>UI: Accepted purchase reference
     UI->>Host: Generate disclosure using receipt
     Host->>Sui: Validate paid Purchase receipt
-    Host->>Walrus: Retrieve encrypted source
-    Host->>Host: Decrypt and verify committed root
-    Host->>Host: Extract purchased lines and build proof
-    Host->>Host: Sign disclosure capsule
-    Host->>Seal: Encrypt capsule using Purchase ID policy
-    Host->>Walrus: Upload Seal-encrypted capsule
+    Host->>Walrus: Retrieve encrypted fragment only
+    Host->>Walrus: Upload encrypted delivery wrapper
     Walrus-->>Host: Capsule blob ID
-    Host->>Sui: record_disclosure(purchase, capsule reference)
+    Host->>Sui: record_fragment_disclosure(fragment, purchase, delivery)
     Sui-->>Host: Disclosure provenance object
     Host-->>UI: Encrypted capsule and blob ID
 
     UI->>Seal: Request decryption with wallet session
-    Seal->>Sui: Dry-run seal_approve(purchase ID)
+    Seal->>Sui: Dry-run seal_approve_fragment(fragment, purchase)
     Seal-->>UI: Release decryption material to paid buyer
     UI->>UI: Decrypt capsule locally
-    UI->>UI: Verify Merkle proof and signature locally
+    UI->>UI: Verify Merkle proof locally
     UI->>Sui: Read public Document anchor
     UI->>UI: Compare proof root to anchored root
     UI-->>Buyer: Verified against Sui anchor
@@ -103,23 +102,22 @@ sequenceDiagram
 ### Publisher Flow
 
 1. A publisher enters a line-oriented dataset and per-line price.
-2. The disclosure host computes the deterministic Merkle root and encrypts the
-   full source using AES-256-GCM.
-3. Only the encrypted source envelope is published to Walrus.
-4. The root and Walrus blob reference are anchored in a Sui `Document` object.
-5. The marketplace stores public listing metadata, never raw source content.
+2. In the recommended testnet mode, the browser computes the Merkle root and
+   proofs, divides the source into fixed sellable sections, and encrypts each
+   section with Seal.
+3. The host receives only Seal ciphertext and public range/root metadata.
+4. Walrus stores the encrypted fragments and manifest; Sui stores a `Document`
+   commitment and one `Fragment` object for each sellable section.
 
 ### Buyer Or Agent Flow
 
-1. A connected buyer selects a line range and signs an exact-price SUI
-   payment that creates a public, one-use `Purchase` receipt.
-2. The disclosure host validates that receipt, reads and decrypts the source, checks it against the
-   committed root, and creates a proof for only the purchased lines.
-3. In Seal mode, the signed capsule is encrypted under the paid `Purchase`
-   identity before it is uploaded to Walrus and recorded on Sui.
-4. The purchasing wallet authorizes a short-lived Seal session and decrypts
-   the capsule locally.
-5. The browser independently verifies the capsule proof and resolves the Sui
+1. A connected buyer selects a published section and signs an exact-price SUI
+   payment that creates a fragment-bound `Purchase` receipt.
+2. The host validates that receipt and records a ciphertext-only delivery
+   wrapper without decrypting the section.
+3. The purchasing wallet authorizes a short-lived Seal session and decrypts
+   the pre-published section locally.
+4. The browser independently verifies its Merkle proof and resolves the Sui
    document anchor before accepting the revealed content.
 
 ## Capsule Artifact
@@ -137,13 +135,13 @@ for its authorized buyer:
   "proof": {},
   "paymentTx": "sui-payment-transaction-digest",
   "suiPurchaseId": "0x...",
-  "signature": "..."
+  "disclosureMode": "publisher-sealed-fragment"
 }
 ```
 
-With `SEAL_CAPSULES=true`, Walrus stores a Seal envelope rather than this
-plaintext JSON. The original plaintext document and its AES key are never
-included in the capsule.
+With publisher-sealed fragments enabled, Walrus stores Seal envelopes rather
+than this plaintext JSON. No original document key is created by the host in
+this mode.
 
 ## Architecture
 
@@ -151,10 +149,10 @@ included in the capsule.
 | --- | --- | --- |
 | Interface | React, Vite, Tailwind, TanStack Query, Zustand | Upload, browse, issue capsules, verify |
 | Marketplace API | Express, TypeScript | Listings, prices, purchase receipts, public metadata |
-| Disclosure Host | Express, TypeScript | Encryption, selective release, signatures, storage and Sui submission |
+| Disclosure Host | Express, TypeScript | Ciphertext storage, paid-delivery provenance, Sui submission |
 | Proof SDK | TypeScript | Browser/node Merkle and capsule verification |
 | Proof Engine | Rust, WASM | Canonical Merkle operations and WASM exports |
-| Storage | Walrus | Encrypted documents and Seal-encrypted disclosure capsules |
+| Storage | Walrus | Encrypted fragments, manifests, and encrypted delivery capsules |
 | Commitments | Sui Move | Document roots, payments, disclosure provenance, Seal policy |
 | Access control | Seal | Buyer-only decryption of paid capsule payloads |
 
@@ -172,26 +170,27 @@ included in the capsule.
 
 ## Security Model And MVP Boundary
 
-Walrus is public storage. Capsule uploads the original source only after
-AES-256-GCM encryption. In Seal mode, purchased disclosure capsules are also
-encrypted before Walrus upload, and `seal_approve` allows decryption only by
-the buyer named in the matching paid Sui `Purchase`.
+Walrus is public storage. In the recommended fixed-fragment mode, the
+publisher browser encrypts sellable sections through Seal before upload.
+`seal_approve_fragment` permits decryption only for a purchase bound to that
+exact fragment and buyer. An AES host-generated compatibility mode remains for
+local/demo and legacy arbitrary-range flows.
 
 The live testnet implementation currently proves:
 
-- encrypted source publication on Walrus;
+- browser-encrypted fixed fragment publication on Walrus without source plaintext reaching the host;
 - permanent capsule publication on Walrus;
 - Sui document-root anchoring and disclosure provenance;
-- paid-buyer Seal decryption authorization for stored capsules;
-- local proof, signature, and on-chain-root verification.
+- fragment-bound paid-buyer Seal decryption authorization;
+- local proof and on-chain-root verification;
+- rejection of a non-fragment receipt even when it pays for the same bounds.
 
 Testnet purchases now transfer exact-price SUI payments to the publisher and
 create a one-use shared receipt that must be consumed to record disclosure.
-The primary remaining trust boundary is source extraction: the disclosure
-host still holds the AES source key in memory before encrypting the purchased
-capsule with Seal. Removing that boundary requires publisher-side
-Seal-encrypted purchasable fragments, plus durable marketplace persistence and
-authenticated production operations. See [`docs/roadmap.md`](docs/roadmap.md).
+The source-key custody boundary is removed for the fixed-fragment mode. The
+remaining production gaps are durable marketplace persistence, stronger
+publisher authentication/ownership UX, and indexed chain reconciliation. See
+[`docs/roadmap.md`](docs/roadmap.md).
 
 ## Run Locally
 
@@ -226,10 +225,11 @@ PROTOCOL_MODE=testnet
 STORAGE_DRIVER=walrus
 SUI_NETWORK=testnet
 SUI_PRIVATE_KEY=suiprivkey...
-SUI_PACKAGE_ID=0xd16496070b726a5bd60f9253b792f45362dab38546898343b31cc58d15207d32
+SUI_PACKAGE_ID=0xd7fbb00bee87bbc0f9f4a196dac5f6607cc22f11157e6ed9e24dfd9cd02f4112
 SEAL_CAPSULES=true
 VITE_SUI_NETWORK=testnet
-VITE_CAPSULE_PACKAGE_ID=0xd16496070b726a5bd60f9253b792f45362dab38546898343b31cc58d15207d32
+VITE_CAPSULE_PACKAGE_ID=0xd7fbb00bee87bbc0f9f4a196dac5f6607cc22f11157e6ed9e24dfd9cd02f4112
+VITE_PUBLISHER_SEALED_FRAGMENTS=true
 ```
 
 To publish a new contract package instead of using the recorded deployment:

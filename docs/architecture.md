@@ -2,35 +2,32 @@
 
 ## Security Boundary
 
-Walrus blobs are public. Capsule therefore chunks plaintext locally for its
-Merkle commitment, encrypts the complete source with AES-256-GCM, and uploads
-only the encrypted envelope. The disclosure host is still the source-key
-custodian: buyers do not obtain the document key. In Seal mode, a purchased
-capsule is encrypted before Walrus upload and decrypted locally by its paid
-buyer.
+Walrus blobs are public. In fixed-fragment mode, Capsule chunks plaintext and
+computes Merkle proofs in the publisher browser, then Seal-encrypts each
+sellable section before it reaches the host. Buyers never obtain content
+outside the section they paid for, and the host never holds the source key.
 
-Payments are settled with a Sui `Purchase` object consumed when disclosure is
-recorded. The same purchase object authorizes Seal decryption through a
-read-only `seal_approve` policy. To remove the remaining source-key boundary,
-publication should produce publisher-side Seal-encrypted purchasable fragments.
+Payments are settled with a `Purchase` object bound to an on-chain `Fragment`.
+The same object authorizes Seal decryption through read-only
+`seal_approve_fragment`. A host-generated AES route remains only as a legacy
+compatibility flow for arbitrary line ranges.
 
 ## Data Flow
 
 ```mermaid
 flowchart LR
-  P["Publisher UI"] -->|"plaintext over publisher session"| H["Disclosure Host"]
-  H -->|"AES-256-GCM encrypted document"| W["Walrus"]
-  H -->|"root and blob ID"| S["Sui Document object"]
+  P["Publisher UI"] -->|"Seal-encrypted fixed fragments only"| H["Disclosure Host"]
+  H -->|"ciphertext fragments and manifest"| W["Walrus"]
+  H -->|"root and fragment references"| S["Sui Document + Fragment objects"]
   H -->|"public listing metadata"| M["Marketplace API"]
-  B["Buyer / AI Agent"] -->|"pay SUI for line range"| S
+  B["Buyer / AI Agent"] -->|"pay SUI for Fragment"| S
   S -->|"Purchase receipt"| M
   M -->|"paid reference"| H
-  H -->|"read encrypted blob and decrypt"| W
-  H -->|"Seal-encrypted capsule"| W
+  H -->|"write ciphertext-only delivery wrapper"| W
   H -->|"consume Purchase and record disclosure"| S
   B -->|"fetch encrypted capsule"| W
   B -->|"wallet session and purchase policy"| K["Seal"]
-  K -->|"dry-run seal_approve"| S
+  K -->|"dry-run seal_approve_fragment"| S
   K -->|"decryption material"| B
   B -->|"decrypt and locally verify"| B
 ```
@@ -53,9 +50,10 @@ The marketplace is intentionally blind to document content and encryption
 keys. It stores publishable metadata, purchasable sections, receipts, and
 non-sensitive capsule summaries.
 
-The disclosure host owns confidential processing in the MVP. It verifies that a
-receipt grants the requested range, creates a Merkle proof, packages provenance,
-and, in Seal mode, uploads only an encrypted capsule envelope to storage.
+For fixed fragments, the disclosure host does not own confidential
+processing. It verifies paid metadata, stores encrypted deliveries, and
+records provenance. Proof construction and encryption happen in the
+publisher browser; decryption and verification happen in the buyer browser.
 
 ## AI-Agent Interface
 

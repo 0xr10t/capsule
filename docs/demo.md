@@ -32,17 +32,18 @@ npm run dev
 3. Set both `SUI_PACKAGE_ID` and `VITE_CAPSULE_PACKAGE_ID` in `.env` to the
    public package ID printed by the deployment.
 4. Set `PROTOCOL_MODE=testnet` and `STORAGE_DRIVER=walrus`.
-5. Set `SEAL_CAPSULES=true` to store paid disclosure capsules as buyer-gated
-   Seal ciphertext on Walrus.
+5. Set `SEAL_CAPSULES=true` and `VITE_PUBLISHER_SEALED_FRAGMENTS=true` to
+   publish fixed sections as Seal ciphertext before they reach the host.
 6. Configure the Walrus testnet publisher and aggregator endpoints if using a
    service provider other than the defaults.
-7. Run `npm run dev`, connect a funded Sui testnet wallet, and publish a small
-   encrypted source document.
-8. Purchase a line range from the connected wallet. Approve the SUI payment
-   transaction; it creates an on-chain `Purchase` receipt. Approve the second
-   wallet message to authorize a short-lived Seal decryption session.
+7. Run `npm run dev`, connect a funded Sui testnet wallet, set the number of
+   lines per purchasable section, and publish a small document. The browser
+   encrypts each section before upload.
+8. Select one encrypted section and approve the SUI payment transaction; it
+   creates a fragment-bound `Purchase`. Approve the second wallet message to
+   authorize a short-lived Seal decryption session.
 
-The resulting listing shows a Sui anchored document object. An issued capsule
-records the paid purchase object and a Sui disclosure object. With Seal enabled,
-Walrus holds ciphertext and only the paid buyer decrypts the capsule in the
-browser before local proof verification.
+The resulting listing shows Sui anchored document and fragment objects. An
+issued capsule records the paid purchase and disclosure objects. Walrus holds
+ciphertext, the host never processes source plaintext in this mode, and only
+the fragment-bound paid buyer decrypts content before local proof verification.
