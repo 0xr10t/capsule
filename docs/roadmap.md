@@ -18,6 +18,7 @@ Capsule now covers the public audit path required for a credible testnet demo:
 - MCP tools for agent-side listing, fetching, commitment inspection, and
   capsule verification;
 - Walrus Site deployment support for the frontend bundle;
+- CI for monorepo builds, tests, and deployment-script typechecking;
 - local proof and on-chain root verification.
 
 The disclosure host no longer receives source plaintext or a document key in
@@ -62,7 +63,9 @@ Official reference: [Seal documentation](https://seal-docs.wal.app/).
 | Complete | PostgreSQL persistence and indexed chain reconciliation | Prevents listings and public audit state from disappearing on restart |
 | Complete | MCP server around listing, fetch, and verify tools | Provides a concrete AI-agent demonstration after payment/decryption contracts stabilize |
 | Complete | Walrus Site frontend deployment support | Makes the public demo itself verifiable through the Walrus stack |
-| Next | zkLogin onboarding | Improves consumer UX; does not fix protocol trust boundaries |
+| Complete | CI build and test workflow | Removes a presentation/engineering credibility gap |
+| Next | Seed hosted marketplace with real-looking demo data | Lets judges exercise purchase/verify immediately |
+| Then | zkLogin onboarding | Improves consumer UX; does not fix protocol trust boundaries |
 
 ## MCP Agent Surface
 

@@ -51,6 +51,22 @@ purchase was rejected by the fragment policy. Full public artifacts are recorded
 [`docs/testnet-validation.md`](docs/testnet-validation.md) and
 [`deployments/sui-testnet.json`](deployments/sui-testnet.json).
 
+## Judge Checklist
+
+The current repo addresses several common review concerns directly:
+
+| Concern | Current status |
+| --- | --- |
+| Wallet connect | Implemented with Sui dApp Kit and visible in the frontend header |
+| Live payment | Buyer signs `purchase_fragment`; Sui creates a public paid `Purchase` receipt |
+| Seal integration | Publisher-side encrypted fragments and buyer-only decrypt through `seal_approve_fragment` |
+| Walrus integration | Encrypted fragments, delivery capsules, and the frontend Walrus Site are on testnet |
+| Agent story | `apps/agent-mcp` exposes read-only MCP tools for discovery and verification |
+| CI | GitHub Actions runs the monorepo build, tests, and script typecheck |
+
+Remaining demo work is mostly presentation: seed a small real-looking dataset
+into the hosted marketplace and record a short end-to-end walkthrough.
+
 ## Product Workflow
 
 ```mermaid

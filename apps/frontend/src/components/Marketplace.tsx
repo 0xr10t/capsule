@@ -6,6 +6,7 @@ import { useState } from "react";
 import { capsuleClient } from "../lib/client";
 import { unlockCapsule } from "../lib/seal";
 import { useCapsuleStore } from "../lib/store";
+import { ReadinessPanel } from "./ReadinessPanel";
 
 function PurchasePanel({ listing }: { listing: DocumentListing }) {
   const selectCapsule = useCapsuleStore((state) => state.selectCapsule);
@@ -208,19 +209,22 @@ export function Marketplace() {
             Publish encrypted data
           </button>
         </div>
-        <div className="protocol-card mt-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-400">Protocol sequence</span>
-            <span className="status-dot">Verifiable</span>
+        <div className="mt-4 grid gap-5">
+          <ReadinessPanel />
+          <div className="protocol-card">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-400">Protocol sequence</span>
+              <span className="status-dot">Verifiable</span>
+            </div>
+            {["Encrypt source locally", "Store ciphertext on Walrus", "Anchor SHA-256 root on Sui", "Mint proof capsule"].map(
+              (item, index) => (
+                <div className="flow-row" key={item}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{item}</strong>
+                </div>
+              ),
+            )}
           </div>
-          {["Encrypt source locally", "Store ciphertext on Walrus", "Anchor SHA-256 root on Sui", "Mint proof capsule"].map(
-            (item, index) => (
-              <div className="flow-row" key={item}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <strong>{item}</strong>
-              </div>
-            ),
-          )}
         </div>
       </section>
       <div className="mb-6 flex items-end justify-between">
