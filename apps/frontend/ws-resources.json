@@ -1,0 +1,15 @@
+{
+  "routes": {
+    "/marketplace": "/index.html",
+    "/upload": "/index.html",
+    "/viewer": "/index.html",
+    "/explorer": "/index.html"
+  },
+  "metadata": {
+    "site_name": "Capsule",
+    "description": "Walrus-native selective-disclosure marketplace for verifiable AI knowledge exchange on Sui.",
+    "project_url": "https://github.com/0xr10t/capsule",
+    "creator": "Capsule"
+  },
+  "ignore": []
+}

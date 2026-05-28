@@ -233,6 +233,33 @@ The MCP server provides `list_documents`, `get_document_commitment`,
 can inspect commitments and verify decrypted capsules, but wallet purchases
 and Seal authorization still require an explicit buyer flow.
 
+## Walrus Site
+
+Capsule can prepare and deploy the Vite frontend as a Walrus Site. The deploy
+wrapper builds `apps/frontend`, writes `ws-resources.json` into the static
+bundle with cache headers, and then calls `site-builder deploy`.
+
+```bash
+suiup install site-builder@mainnet
+suiup install walrus@testnet
+npm run walrus-site:prepare
+npm run deploy:walrus-site
+```
+
+Configure the public build before a real publish:
+
+```env
+VITE_MARKETPLACE_API_URL=https://your-marketplace-api.example
+VITE_DISCLOSURE_HOST_URL=https://your-disclosure-host.example
+WALRUS_SITE_CONTEXT=testnet
+WALRUS_SITE_EPOCHS=1
+```
+
+The deploy script refuses to publish with `localhost` API URLs unless
+`WALRUS_SITE_ALLOW_LOCAL_APIS=true` or `--allow-local-apis` is provided. That
+keeps the public Walrus Site from shipping a frontend that only works on the
+developer laptop.
+
 ### Durable Marketplace Metadata
 
 The zero-setup demo keeps `DATABASE_DRIVER=memory`. For a persistent

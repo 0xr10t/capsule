@@ -17,6 +17,7 @@ Capsule now covers the public audit path required for a credible testnet demo:
   purchases, and disclosures;
 - MCP tools for agent-side listing, fetching, commitment inspection, and
   capsule verification;
+- Walrus Site deployment support for the frontend bundle;
 - local proof and on-chain root verification.
 
 The disclosure host no longer receives source plaintext or a document key in
@@ -60,8 +61,8 @@ Official reference: [Seal documentation](https://seal-docs.wal.app/).
 | Complete | Publisher-side Seal-encrypted purchasable fragments | Removes the in-process source key without exposing full documents |
 | Complete | PostgreSQL persistence and indexed chain reconciliation | Prevents listings and public audit state from disappearing on restart |
 | Complete | MCP server around listing, fetch, and verify tools | Provides a concrete AI-agent demonstration after payment/decryption contracts stabilize |
-| Next | Walrus Site frontend deployment | Makes the public demo itself verifiable through the Walrus stack |
-| Optional | zkLogin onboarding | Improves consumer UX; does not fix protocol trust boundaries |
+| Complete | Walrus Site frontend deployment support | Makes the public demo itself verifiable through the Walrus stack |
+| Next | zkLogin onboarding | Improves consumer UX; does not fix protocol trust boundaries |
 
 ## MCP Agent Surface
 
@@ -78,9 +79,20 @@ hide a wallet transaction inside an apparently read-only agent action.
 
 ## Walrus Site Deployment
 
-A Walrus Site is worthwhile once the payment-enabled frontend and environment
-configuration are stable. It is high-signal distribution, but durable metadata
-and chain reconciliation remain more important for a reliable marketplace.
+The frontend now has a repeatable Walrus Site release path:
+
+```bash
+suiup install site-builder@mainnet
+suiup install walrus@testnet
+npm run walrus-site:prepare
+npm run deploy:walrus-site
+```
+
+The deploy wrapper builds the Vite app, emits Walrus Site resource metadata,
+adds static cache headers, and records the deployed site object ID back into
+`apps/frontend/ws-resources.json`. A real public deployment must use public
+`VITE_MARKETPLACE_API_URL` and `VITE_DISCLOSURE_HOST_URL` values. Localhost
+API URLs are allowed only for dry runs or explicit local-only demos.
 
 On testnet, visitors need a self-hosted or third-party portal; the
 Mysten-operated `wal.app` portal serves mainnet sites with a SuiNS name.

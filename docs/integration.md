@@ -110,6 +110,34 @@ It exposes:
 Seal-encrypted deliveries are reported as requiring wallet decryption. The MCP
 server does not sign transactions or perform purchases.
 
+## Walrus Site Deployment
+
+The frontend can be published as a Walrus Site with:
+
+```bash
+suiup install site-builder@mainnet
+suiup install walrus@testnet
+npm run walrus-site:prepare
+npm run deploy:walrus-site
+```
+
+`scripts/deploy-walrus-site.ts` performs the repeatable release work:
+
+- builds `@capsule/frontend`;
+- copies `apps/frontend/ws-resources.json` into `apps/frontend/dist`;
+- adds immutable cache headers for Vite assets and no-cache headers for
+  `index.html`;
+- calls `site-builder --context=<context> deploy --epochs <epochs>
+  apps/frontend/dist`;
+- records the Walrus Site object ID back into `apps/frontend/ws-resources.json`
+  after a successful deployment.
+
+Use `WALRUS_SITE_CONTEXT`, `WALRUS_SITE_EPOCHS`, `WALRUS_SITE_OBJECT_ID`,
+`WALRUS_SITE_CONFIG`, `WALRUS_SITE_WALRUS_BINARY`, and `WALRUS_SITE_LINK` to
+customize the publish. The script blocks real publishes with `localhost`
+frontend API URLs unless
+`WALRUS_SITE_ALLOW_LOCAL_APIS=true` or `--allow-local-apis` is supplied.
+
 ## Deploying The Move Package
 
 Keep `SUI_PRIVATE_KEY` only in the local gitignored `.env` file, formatted as a
