@@ -77,3 +77,9 @@ An authorized agent can list documents, purchase an approved range, unlock a
 Seal-encrypted JSON capsule, verify it locally using the SDK or WASM proof
 engine, and feed only verified content into retrieval pipelines. Capsule JSON
 is deliberately stable and machine-readable after decryption.
+
+The `apps/agent-mcp` server exposes the safe part of that flow to MCP clients:
+listing documents, reading commitments, fetching capsule records, and verifying
+plaintext/decrypted capsules. Purchase signing and Seal wallet authorization
+remain outside the MCP server so an apparently read-only agent action cannot
+quietly spend SUI or request private decryption material.

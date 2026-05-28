@@ -150,6 +150,7 @@ this mode.
 | Interface | React, Vite, Tailwind, TanStack Query, Zustand | Upload, browse, issue capsules, verify |
 | Marketplace API | Express, TypeScript, PostgreSQL | Durable listings, prices, receipts, public audit index |
 | Disclosure Host | Express, TypeScript | Ciphertext storage, paid-delivery provenance, Sui submission |
+| Agent MCP | MCP stdio, TypeScript SDK | AI tools for listing, fetching, and verifying capsules |
 | Proof SDK | TypeScript | Browser/node Merkle and capsule verification |
 | Proof Engine | Rust, WASM | Canonical Merkle operations and WASM exports |
 | Storage | Walrus | Encrypted fragments, manifests, and encrypted delivery capsules |
@@ -163,6 +164,7 @@ this mode.
 | `apps/frontend` | Publisher, buyer, and verification experience |
 | `apps/marketplace-api` | Listing, pricing, purchase, and metadata API |
 | `apps/disclosure-host` | Encryption, proof generation, Walrus, and Sui host |
+| `apps/agent-mcp` | MCP server exposing read-only agent tools |
 | `packages/shared-types` | Protocol types shared across services |
 | `packages/sdk-typescript` | Browser/node verification and client SDK |
 | `packages/proof-engine-rust` | Rust Merkle implementation with WASM exports |
@@ -215,6 +217,21 @@ Services:
 
 In local demo mode, use `STORAGE_DRIVER=memory`. It exercises encryption,
 proofs, capsules, and UI verification without publishing external artifacts.
+
+## Agent MCP
+
+After the marketplace and disclosure host are running, expose Capsule to an AI
+client with:
+
+```bash
+npm run build -w @capsule/agent-mcp
+npm run mcp:agent
+```
+
+The MCP server provides `list_documents`, `get_document_commitment`,
+`fetch_capsule`, and `verify_capsule`. It is intentionally read-only: agents
+can inspect commitments and verify decrypted capsules, but wallet purchases
+and Seal authorization still require an explicit buyer flow.
 
 ### Durable Marketplace Metadata
 

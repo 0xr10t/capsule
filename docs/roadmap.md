@@ -15,6 +15,8 @@ Capsule now covers the public audit path required for a credible testnet demo:
 - optional PostgreSQL storage for durable public marketplace records;
 - read-only indexed reconciliation of recorded Sui documents, fragments,
   purchases, and disclosures;
+- MCP tools for agent-side listing, fetching, commitment inspection, and
+  capsule verification;
 - local proof and on-chain root verification.
 
 The disclosure host no longer receives source plaintext or a document key in
@@ -57,23 +59,22 @@ Official reference: [Seal documentation](https://seal-docs.wal.app/).
 | Complete | Seal-encrypted paid capsules plus `seal_approve` | Prevents public disclosure payload exposure and proves paid-buyer gating |
 | Complete | Publisher-side Seal-encrypted purchasable fragments | Removes the in-process source key without exposing full documents |
 | Complete | PostgreSQL persistence and indexed chain reconciliation | Prevents listings and public audit state from disappearing on restart |
-| Next | MCP server around listing, fetch, and verify tools | Provides a concrete AI-agent demonstration after payment/decryption contracts stabilize |
-| Then | Walrus Site frontend deployment | Makes the public demo itself verifiable through the Walrus stack |
+| Complete | MCP server around listing, fetch, and verify tools | Provides a concrete AI-agent demonstration after payment/decryption contracts stabilize |
+| Next | Walrus Site frontend deployment | Makes the public demo itself verifiable through the Walrus stack |
 | Optional | zkLogin onboarding | Improves consumer UX; does not fix protocol trust boundaries |
 
 ## MCP Agent Surface
 
-The TypeScript SDK already exposes the basis for a small MCP server. A credible
-agent-facing package should first expose read-only and verifiable operations:
+The TypeScript SDK now powers a stdio MCP server at `apps/agent-mcp`. It exposes:
 
 - `list_documents`;
 - `get_document_commitment`;
 - `fetch_capsule`;
 - `verify_capsule`.
 
-Paid purchase tooling must use a delegated Sui signer or an explicit
-human-approval step. It should never hide a wallet transaction inside an
-apparently read-only agent action.
+Paid purchase tooling is intentionally excluded. A future purchase tool must
+use a delegated Sui signer or an explicit human-approval step. It should never
+hide a wallet transaction inside an apparently read-only agent action.
 
 ## Walrus Site Deployment
 

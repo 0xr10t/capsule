@@ -92,6 +92,24 @@ recorded payment transaction's object changes to prove the receipt originated
 from that payment rather than treating its later disclosure mutation as its
 creation transaction.
 
+## Agent MCP Server
+
+`apps/agent-mcp` is a stdio MCP server for AI-agent demos. It reads
+`CAPSULE_MARKETPLACE_API_URL` and `CAPSULE_DISCLOSURE_HOST_URL`, falling back
+to the service URLs used by the frontend and local demo.
+
+It exposes:
+
+| Tool | Behavior |
+| --- | --- |
+| `list_documents` | Returns public marketplace summaries |
+| `get_document_commitment` | Returns Merkle, Walrus, Sui, and fragment metadata for one document |
+| `fetch_capsule` | Fetches a permanent capsule or Seal delivery wrapper |
+| `verify_capsule` | Verifies a plaintext/decrypted capsule locally and through the host's Sui-root check |
+
+Seal-encrypted deliveries are reported as requiring wallet decryption. The MCP
+server does not sign transactions or perform purchases.
+
 ## Deploying The Move Package
 
 Keep `SUI_PRIVATE_KEY` only in the local gitignored `.env` file, formatted as a
