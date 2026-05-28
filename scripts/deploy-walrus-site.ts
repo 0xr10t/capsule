@@ -178,6 +178,8 @@ function assertSiteBuilderAvailable(command: string): void {
 
 function deploy(options: Options): void {
   assertSiteBuilderAvailable(options.siteBuilder);
+  const resources = readJson<WalrusSiteResources>(distResourcePath);
+  const siteName = resources.metadata?.site_name;
   const args = [
     `--context=${options.context}`,
     ...(options.config ? [`--config=${options.config}`] : []),
@@ -185,6 +187,7 @@ function deploy(options: Options): void {
     "deploy",
     "--epochs",
     options.epochs,
+    ...(siteName ? ["--site-name", siteName] : []),
     ...(options.objectId ? ["--object-id", options.objectId] : []),
     distDir,
   ];
@@ -235,6 +238,8 @@ try {
       "deploy",
       "--epochs",
       options.epochs,
+      "--site-name",
+      "Capsule",
       ...(options.objectId ? ["--object-id", options.objectId] : []),
       distDir,
     ].join(" "));

@@ -138,6 +138,17 @@ customize the publish. The script blocks real publishes with `localhost`
 frontend API URLs unless
 `WALRUS_SITE_ALLOW_LOCAL_APIS=true` or `--allow-local-apis` is supplied.
 
+The current testnet frontend deployment is recorded in
+`apps/frontend/ws-resources.json`:
+
+```text
+Site object ID: 0x1fde79935fe41288be57595e6f674625527af56ca66af6436694aed27d93b000
+Portal host: slexkmjwaz0gxjqmmj602ss891d8ny80ivihyk5xj709cudj4
+```
+
+Because `wal.app` serves mainnet sites, testnet browsing requires a
+self-hosted or third-party Walrus Sites portal.
+
 ## Deploying The Move Package
 
 Keep `SUI_PRIVATE_KEY` only in the local gitignored `.env` file, formatted as a

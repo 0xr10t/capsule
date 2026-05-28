@@ -260,6 +260,16 @@ The deploy script refuses to publish with `localhost` API URLs unless
 keeps the public Walrus Site from shipping a frontend that only works on the
 developer laptop.
 
+Current testnet Walrus Site:
+
+```text
+Site object ID: 0x1fde79935fe41288be57595e6f674625527af56ca66af6436694aed27d93b000
+Testnet portal host: slexkmjwaz0gxjqmmj602ss891d8ny80ivihyk5xj709cudj4
+```
+
+`wal.app` serves mainnet sites only. For testnet demos, use a self-hosted or
+third-party Walrus Sites portal with the host above.
+
 ### Durable Marketplace Metadata
 
 The zero-setup demo keeps `DATABASE_DRIVER=memory`. For a persistent
