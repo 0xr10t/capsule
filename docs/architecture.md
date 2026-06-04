@@ -34,11 +34,28 @@ flowchart LR
 
 ## Merkle Commitment
 
-Lines are UTF-8 encoded and leaf-hashed as `SHA256(line)`. Leaves are padded
-to the next power of two with `SHA256("")`; an empty document has one empty
-leaf. Parent nodes are `SHA256(left || right)`. Line ranges are inclusive and
+In the publisher-sealed product path, lines are UTF-8 encoded and committed
+with a document nonce plus per-line nonces:
+
+```text
+leaf = SHA256("capsule:salted-leaf:v1" || document_nonce || line_index || line_nonce || line_content)
+```
+
+Only the nonces for purchased lines are included in the disclosed proof. This
+keeps verification local while reducing offline guessing attacks against
+short, templated, or predictable document lines.
+
+Leaves are padded to the next power of two with domain-separated padding
+leaves:
+
+```text
+padding_leaf = SHA256("capsule:padding-leaf:v1" || padded_line_index)
+```
+
+Parent nodes are still `SHA256(left || right)`. Line ranges are inclusive and
 zero-indexed at API boundaries; the UI labels them as human-friendly
-one-indexed lines.
+one-indexed lines. A plain `SHA256(line)` proof path remains only for legacy
+local compatibility capsules.
 
 The TypeScript SDK provides immediate browser verification. The Rust engine
 implements the same canonical algorithm and exposes WASM entry points for a

@@ -268,3 +268,24 @@ non-empty product instead of a synthetic three-line fixture.
 The listing uses salted Merkle leaves and Seal-encrypted fixed fragments. The
 marketplace list endpoint collapses duplicate same-title seed attempts to the
 newest listing for judge-facing UX.
+
+## Seeded AI Data Marketplace Catalog
+
+Validated on June 5, 2026 IST using the hosted Render services, Walrus
+testnet, Sui testnet, and the publisher-sealed fixed-fragment path. These
+listings are synthetic public-demo datasets, but each one was published as
+Seal-encrypted fragments with salted Merkle proofs, Walrus blob references,
+and Sui document/fragment commitments.
+
+| Listing | Marketplace ID | Sui Document object | Manifest Walrus blob | Fragments |
+| --- | --- | --- | --- | --- |
+| `Supplier Risk Report — Battery Supply Chain` | `2f08ad24-14e4-4f28-9957-9d98e39c1cc0` | `0xf69ec7064e60f779f6841ff61a8e3d6cbe9f6ac58cd212aa75209d6cd8875d7a` | `X9Ejo_VS0qnS4xbGsgte4S8tfYIDv84Mor6OMZfRQTU` | `5` |
+| `Private Crypto Protocol Diligence Report` | `baf28480-d767-4a7d-9a27-582de6b5fbaf` | `0xa22455d78ac5a0a1c7d17180466c6272adcb1c18e600f90aa5a982d4493fcf5d` | `MRxPF5eTJ3Q_mAcHLWiNq8wPi0qjaQFkzNZ83FnpOsg` | `5` |
+| `AI Model Evaluation Dataset Notes` | `8bfed84d-20d6-4223-b417-cb3ab8bbb430` | `0x9a482d0164dcfaf65e4830e49b5cd0fa516609e27edebdb8287ce5ac64c9c5f8` | `iplhn_Gp96Bl0wrnki1JHbEMSorvMX77F-wY15bvdr4` | `4` |
+| `Market Intelligence: India EV Components` | `6f16873a-8fb1-49c8-87a9-7b05b211f610` | `0xe09f47722799fdf38827ed7579630faa8e7a658348eaa006a993d85ebc87e6b7` | `exwg_FOl9_NOXGFZYX2xfF0-pRjleYaC4lb7nWRBUuE` | `4` |
+| `Legal Case Research Memo — Public demo synthetic` | `fbaee048-9ed7-4f74-ad46-fec8eabaa549` | `0x33fda9897368602243576d960abac1f1f57edcbeb1dc833da11ad31fa11b9ce7` | `DjH9cKc8JJiOgBt9HPHZcdcv_YsPF9gVYefr-cu1o4U` | `4` |
+
+The catalog demonstrates Capsule as an AI-agent data marketplace rather than
+a single-document fixture: agents can discover a topic-specific dataset,
+purchase one fixed fragment, decrypt through Seal, and verify the result
+against a public Sui commitment.

@@ -85,16 +85,18 @@ purchase was rejected by the fragment policy. Full public artifacts are recorded
 [`docs/testnet-validation.md`](docs/testnet-validation.md) and
 [`deployments/sui-testnet.json`](deployments/sui-testnet.json).
 
-The hosted marketplace is also seeded with a realistic diligence report:
+The hosted marketplace is seeded with realistic AI-data marketplace examples:
 
-| Item | Public identifier |
+| Listing | Use case |
 | --- | --- |
-| Listing | `Northstar Components Supplier Concentration Diligence` |
-| Marketplace ID | `572d1f41-5429-47c3-9a2f-66719e96d4a5` |
-| Sui Document object | `0xbb7df061872f1708ad71dfbdc0f206400e2570568af001f39664fb6ade3e516f` |
-| Document transaction | `AWjHofEc2hsG6qLTKAVTWKk9UkzgiaZhewVdhqtH5sbV` |
-| Manifest Walrus blob | `iYxzV2wqESbqMIdLN_GW5VKwiutYC-ngr8PqDAvg-JQ` |
-| Fragment count | `5` fixed Seal-encrypted sections |
+| `Supplier Risk Report — Battery Supply Chain` | EV procurement and supplier-risk intelligence |
+| `Private Crypto Protocol Diligence Report` | Protocol, treasury, and validator-risk research |
+| `AI Model Evaluation Dataset Notes` | Verified model-evaluation evidence for agents |
+| `Market Intelligence: India EV Components` | Market-entry and sourcing intelligence |
+| `Legal Case Research Memo — Public demo synthetic` | Permissioned selective-disclosure demo without real client data |
+
+Each listing is published as fixed Seal-encrypted fragments with salted Merkle
+proofs, Walrus blob references, and Sui document/fragment commitments.
 
 ## Judge Checklist
 
@@ -205,10 +207,10 @@ this mode.
 Salted publisher commitments use:
 
 ```text
-leaf = SHA256("capsule:salted-leaf:v1" || line_index || random_salt || line_content)
+leaf = SHA256("capsule:salted-leaf:v1" || document_nonce || line_index || line_nonce || line_content)
 ```
 
-The disclosed capsule includes salts only for purchased lines. See
+The disclosed capsule includes line nonces only for purchased lines. See
 [`docs/threat-model.md`](docs/threat-model.md).
 
 ## Architecture

@@ -33,6 +33,8 @@ pub struct MerkleRangeProof {
     pub algorithm: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub leaf_hashing: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub document_nonce: Option<String>,
     pub leaf_count: usize,
     pub padded_leaf_count: usize,
     pub range: LineRange,
@@ -66,11 +68,36 @@ fn index_bytes(index: usize) -> [u8; 8] {
     (index as u64).to_be_bytes()
 }
 
-fn salted_line_hash(line: &str, index: usize, salt: &str) -> Result<Hash, String> {
+fn decode_nonce(value: &str, label: &str) -> Result<Vec<u8>, String> {
+    let bytes = hex::decode(value).map_err(|_| format!("invalid {label}"))?;
+    if bytes.len() != 32 {
+        return Err(format!("invalid {label}"));
+    }
+    Ok(bytes)
+}
+
+fn salted_line_hash(
+    line: &str,
+    index: usize,
+    salt: &str,
+    document_nonce: &str,
+) -> Result<Hash, String> {
+    let document_nonce_bytes = decode_nonce(document_nonce, "document nonce")?;
     let salt_bytes = hex::decode(salt).map_err(|_| "invalid leaf salt".to_string())?;
     if salt_bytes.len() != 32 {
         return Err("invalid leaf salt".into());
     }
+    let mut bytes = Vec::with_capacity("capsule:salted-leaf:v1".len() + 32 + 8 + 32 + line.len());
+    bytes.extend_from_slice(b"capsule:salted-leaf:v1");
+    bytes.extend_from_slice(&document_nonce_bytes);
+    bytes.extend_from_slice(&index_bytes(index));
+    bytes.extend_from_slice(&salt_bytes);
+    bytes.extend_from_slice(line.as_bytes());
+    Ok(hash_bytes(&bytes))
+}
+
+fn legacy_salted_line_hash(line: &str, index: usize, salt: &str) -> Result<Hash, String> {
+    let salt_bytes = decode_nonce(salt, "leaf salt")?;
     let mut bytes = Vec::with_capacity("capsule:salted-leaf:v1".len() + 8 + 32 + line.len());
     bytes.extend_from_slice(b"capsule:salted-leaf:v1");
     bytes.extend_from_slice(&index_bytes(index));
@@ -94,7 +121,11 @@ fn normalized_lines(lines: &[String]) -> Vec<String> {
     }
 }
 
-fn levels_with_salts(lines: &[String], salts: Option<&[String]>) -> Result<Vec<Vec<Hash>>, String> {
+fn levels_with_salts(
+    lines: &[String],
+    salts: Option<&[String]>,
+    document_nonce: Option<&str>,
+) -> Result<Vec<Vec<Hash>>, String> {
     let values = normalized_lines(lines);
     let leaf_count = values.len();
     let padded_count = leaf_count.next_power_of_two();
@@ -102,12 +133,17 @@ fn levels_with_salts(lines: &[String], salts: Option<&[String]>) -> Result<Vec<V
         if salts.len() != leaf_count {
             return Err("leaf salt count must match document line count".into());
         }
+        if document_nonce.is_none() {
+            return Err("document nonce is required with salted leaves".into());
+        }
     }
     let mut leaves: Vec<Hash> = values
         .iter()
         .enumerate()
         .map(|(index, line)| match salts {
-            Some(salts) => salted_line_hash(line, index, &salts[index]),
+            Some(salts) => {
+                salted_line_hash(line, index, &salts[index], document_nonce.expect("checked"))
+            }
             None => Ok(line_hash(line)),
         })
         .collect::<Result<_, _>>()?;
@@ -131,7 +167,7 @@ fn levels_with_salts(lines: &[String], salts: Option<&[String]>) -> Result<Vec<V
 }
 
 fn levels(lines: &[String]) -> Vec<Vec<Hash>> {
-    levels_with_salts(lines, None).expect("plain hashing cannot fail")
+    levels_with_salts(lines, None, None).expect("plain hashing cannot fail")
 }
 
 pub fn build_tree(lines: &[String]) -> TreeResult {
@@ -144,9 +180,13 @@ pub fn build_tree(lines: &[String]) -> TreeResult {
     }
 }
 
-pub fn build_tree_with_salts(lines: &[String], salts: &[String]) -> Result<TreeResult, String> {
+pub fn build_tree_with_salts(
+    lines: &[String],
+    salts: &[String],
+    document_nonce: &str,
+) -> Result<TreeResult, String> {
     let values = normalized_lines(lines);
-    let tree = levels_with_salts(&values, Some(salts))?;
+    let tree = levels_with_salts(&values, Some(salts), Some(document_nonce))?;
     Ok(TreeResult {
         root_hash: hex::encode(tree.last().expect("root level")[0]),
         leaf_count: values.len(),
@@ -186,6 +226,7 @@ pub fn generate_proof(
     Ok(MerkleRangeProof {
         algorithm: "sha256".into(),
         leaf_hashing: Some("plain-sha256".into()),
+        document_nonce: None,
         leaf_count: values.len(),
         padded_leaf_count: tree[0].len(),
         range: LineRange { start, end },
@@ -196,6 +237,7 @@ pub fn generate_proof(
 pub fn generate_proof_with_salts(
     lines: &[String],
     salts: &[String],
+    document_nonce: &str,
     start: usize,
     end: usize,
 ) -> Result<MerkleRangeProof, String> {
@@ -203,7 +245,7 @@ pub fn generate_proof_with_salts(
     if start > end || end >= values.len() {
         return Err("requested disclosure range is outside the document".into());
     }
-    let tree = levels_with_salts(&values, Some(salts))?;
+    let tree = levels_with_salts(&values, Some(salts), Some(document_nonce))?;
     let mut proofs = Vec::new();
     for line_index in start..=end {
         let mut cursor = line_index;
@@ -225,7 +267,8 @@ pub fn generate_proof_with_salts(
     }
     Ok(MerkleRangeProof {
         algorithm: "sha256".into(),
-        leaf_hashing: Some("salted-sha256-v1".into()),
+        leaf_hashing: Some("salted-sha256-v2".into()),
+        document_nonce: Some(document_nonce.into()),
         leaf_count: values.len(),
         padded_leaf_count: tree[0].len(),
         range: LineRange { start, end },
@@ -251,11 +294,27 @@ pub fn verify_proof(lines: &[String], proof: &MerkleRangeProof, expected_root: &
                 return false;
             }
             let mut current = match proof.leaf_hashing.as_deref() {
+                Some("salted-sha256-v2") => match line_proof
+                    .leaf_salt
+                    .as_deref()
+                    .ok_or_else(|| "missing salt".to_string())
+                    .and_then(|salt| {
+                        proof
+                            .document_nonce
+                            .as_deref()
+                            .ok_or_else(|| "missing document nonce".to_string())
+                            .and_then(|document_nonce| {
+                                salted_line_hash(line, line_proof.line_index, salt, document_nonce)
+                            })
+                    }) {
+                    Ok(hash) => hash,
+                    Err(_) => return false,
+                },
                 Some("salted-sha256-v1") => match line_proof
                     .leaf_salt
                     .as_deref()
                     .ok_or_else(|| "missing salt".to_string())
-                    .and_then(|salt| salted_line_hash(line, line_proof.line_index, salt))
+                    .and_then(|salt| legacy_salted_line_hash(line, line_proof.line_index, salt))
                 {
                     Ok(hash) => hash,
                     Err(_) => return false,
@@ -299,9 +358,17 @@ pub fn generate_range_proof(lines_json: &str, start: usize, end: usize) -> Resul
 }
 
 #[wasm_bindgen(js_name = buildSaltedMerkleTree)]
-pub fn build_salted_merkle_tree(lines_json: &str, salts_json: &str) -> Result<String, JsValue> {
-    let tree = build_tree_with_salts(&parse_lines(lines_json)?, &parse_lines(salts_json)?)
-        .map_err(|error| JsValue::from_str(&error))?;
+pub fn build_salted_merkle_tree(
+    lines_json: &str,
+    salts_json: &str,
+    document_nonce: &str,
+) -> Result<String, JsValue> {
+    let tree = build_tree_with_salts(
+        &parse_lines(lines_json)?,
+        &parse_lines(salts_json)?,
+        document_nonce,
+    )
+    .map_err(|error| JsValue::from_str(&error))?;
     serde_json::to_string(&tree).map_err(|error| JsValue::from_str(&error.to_string()))
 }
 
@@ -309,11 +376,18 @@ pub fn build_salted_merkle_tree(lines_json: &str, salts_json: &str) -> Result<St
 pub fn generate_salted_range_proof(
     lines_json: &str,
     salts_json: &str,
+    document_nonce: &str,
     start: usize,
     end: usize,
 ) -> Result<String, JsValue> {
-    let proof = generate_proof_with_salts(&parse_lines(lines_json)?, &parse_lines(salts_json)?, start, end)
-        .map_err(|error| JsValue::from_str(&error))?;
+    let proof = generate_proof_with_salts(
+        &parse_lines(lines_json)?,
+        &parse_lines(salts_json)?,
+        document_nonce,
+        start,
+        end,
+    )
+    .map_err(|error| JsValue::from_str(&error))?;
     serde_json::to_string(&proof).map_err(|error| JsValue::from_str(&error.to_string()))
 }
 
@@ -375,16 +449,27 @@ mod tests {
         let salts = (0..lines.len())
             .map(|index| format!("{index:064x}"))
             .collect::<Vec<_>>();
-        let root = build_tree_with_salts(&lines, &salts).unwrap().root_hash;
+        let document_nonce = "a".repeat(64);
+        let root = build_tree_with_salts(&lines, &salts, &document_nonce)
+            .unwrap()
+            .root_hash;
         let plain_root = build_tree(&lines).root_hash;
         assert_ne!(root, plain_root);
 
-        let proof = generate_proof_with_salts(&lines, &salts, 1, 2).unwrap();
-        assert_eq!(proof.leaf_hashing.as_deref(), Some("salted-sha256-v1"));
+        let proof = generate_proof_with_salts(&lines, &salts, &document_nonce, 1, 2).unwrap();
+        assert_eq!(proof.leaf_hashing.as_deref(), Some("salted-sha256-v2"));
+        assert_eq!(
+            proof.document_nonce.as_deref(),
+            Some(document_nonce.as_str())
+        );
         assert!(verify_proof(&lines[1..=2], &proof, &root));
 
         let mut missing_salt = proof.clone();
         missing_salt.proofs[0].leaf_salt = None;
         assert!(!verify_proof(&lines[1..=2], &missing_salt, &root));
+
+        let mut missing_document_nonce = proof.clone();
+        missing_document_nonce.document_nonce = None;
+        assert!(!verify_proof(&lines[1..=2], &missing_document_nonce, &root));
     }
 }

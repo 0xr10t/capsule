@@ -50,7 +50,10 @@ export function Upload() {
           rootHash: merkle.rootHash,
           lineRange: { start, end },
           disclosedContent: lines.slice(start, end + 1),
-          proof: await generateRangeProof(lines, start, end, { leafSalts: merkle.leafSalts }),
+          proof: await generateRangeProof(lines, start, end, {
+            leafSalts: merkle.leafSalts,
+            documentNonce: merkle.documentNonce,
+          }),
         }, packageId, suiClient));
       }
       return capsuleClient.uploadSealedDocument({

@@ -14,6 +14,7 @@ const paddingLeafDomain = encoder.encode("capsule:padding-leaf:v1");
 interface MerkleOptions {
   leafSalts?: string[];
   salted?: boolean;
+  documentNonce?: string;
 }
 
 function toHex(value: Uint8Array): string {
@@ -55,7 +56,17 @@ function concat(parts: Uint8Array[]): Uint8Array {
   return bytes;
 }
 
-async function hashSaltedLine(line: string, index: number, salt: string): Promise<Uint8Array> {
+async function hashSaltedLine(line: string, index: number, salt: string, documentNonce: string): Promise<Uint8Array> {
+  return sha256(concat([
+    saltedLeafDomain,
+    fromHex(documentNonce, "document nonce"),
+    indexBytes(index),
+    fromHex(salt, "leaf salt"),
+    encoder.encode(line),
+  ]));
+}
+
+async function hashLegacySaltedLine(line: string, index: number, salt: string): Promise<Uint8Array> {
   return sha256(concat([saltedLeafDomain, indexBytes(index), fromHex(salt, "leaf salt"), encoder.encode(line)]));
 }
 
@@ -84,16 +95,25 @@ function resolveSalts(lines: string[], options: MerkleOptions = {}): string[] | 
   return options.salted ? lines.map(randomSalt) : undefined;
 }
 
+function resolveDocumentNonce(leafSalts: string[] | undefined, options: MerkleOptions = {}): string | undefined {
+  if (!leafSalts) {
+    return undefined;
+  }
+  return options.documentNonce ?? randomSalt();
+}
+
 async function createLevels(linesInput: string[], options: MerkleOptions = {}): Promise<{
   levels: Uint8Array[][];
   leafSalts?: string[];
-  leafHashing: "plain-sha256" | "salted-sha256-v1";
+  documentNonce?: string;
+  leafHashing: "plain-sha256" | "salted-sha256-v2";
 }> {
   const lines = linesInput.length === 0 ? [""] : linesInput;
   const leafSalts = resolveSalts(lines, options);
+  const documentNonce = resolveDocumentNonce(leafSalts, options);
   const paddedLeafCount = 2 ** Math.ceil(Math.log2(lines.length));
   const leaves = await Promise.all(lines.map((line, index) =>
-    leafSalts ? hashSaltedLine(line, index, leafSalts[index]!) : hashLine(line)
+    leafSalts ? hashSaltedLine(line, index, leafSalts[index]!, documentNonce!) : hashLine(line)
   ));
   const padding = leafSalts ? undefined : await hashLine("");
   while (leaves.length < paddedLeafCount) {
@@ -111,7 +131,8 @@ async function createLevels(linesInput: string[], options: MerkleOptions = {}): 
   return {
     levels,
     leafSalts,
-    leafHashing: leafSalts ? "salted-sha256-v1" : "plain-sha256",
+    documentNonce,
+    leafHashing: leafSalts ? "salted-sha256-v2" : "plain-sha256",
   };
 }
 
@@ -119,16 +140,18 @@ export async function buildMerkleTree(linesInput: string[], options: MerkleOptio
   rootHash: HexHash;
   leafCount: number;
   paddedLeafCount: number;
-  leafHashing: "plain-sha256" | "salted-sha256-v1";
+  leafHashing: "plain-sha256" | "salted-sha256-v2";
+  documentNonce?: string;
   leafSalts?: string[];
 }> {
   const lines = linesInput.length === 0 ? [""] : linesInput;
-  const { levels, leafSalts, leafHashing } = await createLevels(lines, options);
+  const { levels, leafSalts, documentNonce, leafHashing } = await createLevels(lines, options);
   return {
     rootHash: toHex(levels.at(-1)![0]!),
     leafCount: lines.length,
     paddedLeafCount: levels[0]!.length,
     leafHashing,
+    documentNonce,
     leafSalts,
   };
 }
@@ -143,7 +166,10 @@ export async function generateRangeProof(
   if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || start > end || end >= lines.length) {
     throw new Error("Requested disclosure range is outside the document");
   }
-  const { levels, leafSalts, leafHashing } = await createLevels(lines, options);
+  if (options.leafSalts && !options.documentNonce) {
+    throw new Error("Document nonce is required when reusing leaf salts");
+  }
+  const { levels, leafSalts, documentNonce, leafHashing } = await createLevels(lines, options);
   const proofs: LineProof[] = [];
   for (let lineIndex = start; lineIndex <= end; lineIndex += 1) {
     const siblings: ProofNode[] = [];
@@ -162,6 +188,7 @@ export async function generateRangeProof(
   return {
     algorithm: "sha256",
     leafHashing,
+    documentNonce,
     leafCount: lines.length,
     paddedLeafCount: levels[0]!.length,
     range: { start, end },
@@ -196,9 +223,13 @@ export async function verifyRangeProof(
     }
     let current: Uint8Array;
     try {
-      current = proof.leafHashing === "salted-sha256-v1"
-        ? await hashSaltedLine(content, lineProof.lineIndex, lineProof.leafSalt ?? "")
-        : await hashLine(content);
+      if (proof.leafHashing === "salted-sha256-v2") {
+        current = await hashSaltedLine(content, lineProof.lineIndex, lineProof.leafSalt ?? "", proof.documentNonce ?? "");
+      } else if (proof.leafHashing === "salted-sha256-v1") {
+        current = await hashLegacySaltedLine(content, lineProof.lineIndex, lineProof.leafSalt ?? "");
+      } else {
+        current = await hashLine(content);
+      }
       for (const node of lineProof.siblings) {
         const sibling = fromHex(node.hash);
         current = node.position === "left"

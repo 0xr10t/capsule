@@ -25,12 +25,17 @@ describe("Capsule merkle proofs", () => {
   it("supports salted commitments for private publisher-side fragments", async () => {
     const first = await buildMerkleTree(lines, { salted: true });
     const second = await buildMerkleTree(lines, { salted: true });
-    expect(first.leafHashing).toBe("salted-sha256-v1");
+    expect(first.leafHashing).toBe("salted-sha256-v2");
+    expect(first.documentNonce).toMatch(/^[\da-f]{64}$/);
     expect(first.leafSalts).toHaveLength(lines.length);
     expect(first.rootHash).not.toBe(second.rootHash);
 
-    const proof = await generateRangeProof(lines, 1, 2, { leafSalts: first.leafSalts });
-    expect(proof.leafHashing).toBe("salted-sha256-v1");
+    const proof = await generateRangeProof(lines, 1, 2, {
+      leafSalts: first.leafSalts,
+      documentNonce: first.documentNonce,
+    });
+    expect(proof.leafHashing).toBe("salted-sha256-v2");
+    expect(proof.documentNonce).toBe(first.documentNonce);
     expect(proof.proofs.map((lineProof) => lineProof.leafSalt)).toEqual(first.leafSalts!.slice(1, 3));
     expect(await verifyRangeProof(lines.slice(1, 3), proof, first.rootHash)).toMatchObject({ valid: true });
     expect(await verifyRangeProof(lines.slice(1, 3), { ...proof, proofs: proof.proofs.map(({ leafSalt, ...lineProof }) => lineProof) }, first.rootHash)).toMatchObject({

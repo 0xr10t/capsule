@@ -46,12 +46,12 @@ are short or predictable. Capsule's publisher-sealed flow now uses salted leaf
 commitments:
 
 ```text
-leaf = SHA256("capsule:salted-leaf:v1" || line_index || random_salt || line_content)
+leaf = SHA256("capsule:salted-leaf:v1" || document_nonce || line_index || line_nonce || line_content)
 ```
 
-Only salts for purchased lines are included in the disclosure proof. This keeps
-verification local while making unpublished lines substantially harder to
-guess from the public root and sibling hashes. Legacy unsalted capsules remain
+Only line nonces for purchased lines are included in the disclosure proof. This
+keeps verification local while making unpublished lines substantially harder
+to guess from the public root and sibling hashes. Legacy unsalted capsules remain
 verifiable for old testnet artifacts, but the trust-minimized product path
 uses salted leaves.
 

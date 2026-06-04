@@ -60,7 +60,8 @@ export interface LineProof {
 
 export interface MerkleRangeProof {
   algorithm: "sha256";
-  leafHashing?: "plain-sha256" | "salted-sha256-v1";
+  leafHashing?: "plain-sha256" | "salted-sha256-v1" | "salted-sha256-v2";
+  documentNonce?: string;
   leafCount: number;
   paddedLeafCount: number;
   range: LineRange;

@@ -37,12 +37,14 @@ jobs:
       - name: Build and test
         run: npm run check
 
-      - name: Build and test Move package
-        run: |
-          npm run move:build
-          npm run move:test
+      - name: Build Move package
+        run: npm run move:build
 
-      - name: Build WASM proof engine
-        run: |
-          npm run wasm:node
-          npm run wasm:web
+      - name: Test Move package
+        run: npm run move:test
+
+      - name: Build WASM node target
+        run: npm run wasm:node
+
+      - name: Build WASM web target
+        run: npm run wasm:web

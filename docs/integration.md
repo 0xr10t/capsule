@@ -13,8 +13,9 @@ protocol mode, adds `send_object_to={Sui signer address}` so the application
 publisher receives the public Walrus blob object. Set `STORAGE_DRIVER=walrus`
 to leave local demo storage. In the recommended publisher-sealed mode,
 the provider receives only encrypted fixed fragments, a public manifest, and
-ciphertext-only delivery wrappers. The legacy host-generated mode continues
-to store an AES-256-GCM source envelope.
+ciphertext-only delivery wrappers. The legacy host-generated AES-256-GCM
+source envelope remains a local-only compatibility path, not the
+trust-minimized product architecture.
 
 Relevant official documentation:
 
