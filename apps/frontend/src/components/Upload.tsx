@@ -38,7 +38,10 @@ export function Upload() {
       if (!packageId) {
         throw new Error("Configure VITE_CAPSULE_PACKAGE_ID for publisher-side Seal fragments.");
       }
-      const merkle = await buildMerkleTree(lines);
+      const merkle = await buildMerkleTree(lines, { salted: true });
+      if (!merkle.leafSalts) {
+        throw new Error("Salted publisher commitment failed to initialize.");
+      }
       const fragments = [];
       for (let start = 0; start < lines.length; start += fragmentSize) {
         const end = Math.min(lines.length - 1, start + fragmentSize - 1);
@@ -47,7 +50,7 @@ export function Upload() {
           rootHash: merkle.rootHash,
           lineRange: { start, end },
           disclosedContent: lines.slice(start, end + 1),
-          proof: await generateRangeProof(lines, start, end),
+          proof: await generateRangeProof(lines, start, end, { leafSalts: merkle.leafSalts }),
         }, packageId, suiClient));
       }
       return capsuleClient.uploadSealedDocument({

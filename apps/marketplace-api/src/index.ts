@@ -69,7 +69,16 @@ app.get("/health", (_request, response) => {
 });
 
 app.get("/documents", async (_request, response) => {
-  response.json(await store.listDocuments());
+  const documents = await store.listDocuments();
+  const unique = new Map<string, DocumentListing>();
+  for (const document of documents) {
+    const key = `${document.category.toLowerCase()}::${document.title.toLowerCase()}`;
+    const existing = unique.get(key);
+    if (!existing || Date.parse(document.createdAt) > Date.parse(existing.createdAt)) {
+      unique.set(key, document);
+    }
+  }
+  response.json([...unique.values()].sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt)));
 });
 
 app.get("/documents/:id", async (request, response) => {

@@ -22,6 +22,23 @@ describe("Capsule merkle proofs", () => {
     });
   });
 
+  it("supports salted commitments for private publisher-side fragments", async () => {
+    const first = await buildMerkleTree(lines, { salted: true });
+    const second = await buildMerkleTree(lines, { salted: true });
+    expect(first.leafHashing).toBe("salted-sha256-v1");
+    expect(first.leafSalts).toHaveLength(lines.length);
+    expect(first.rootHash).not.toBe(second.rootHash);
+
+    const proof = await generateRangeProof(lines, 1, 2, { leafSalts: first.leafSalts });
+    expect(proof.leafHashing).toBe("salted-sha256-v1");
+    expect(proof.proofs.map((lineProof) => lineProof.leafSalt)).toEqual(first.leafSalts!.slice(1, 3));
+    expect(await verifyRangeProof(lines.slice(1, 3), proof, first.rootHash)).toMatchObject({ valid: true });
+    expect(await verifyRangeProof(lines.slice(1, 3), { ...proof, proofs: proof.proofs.map(({ leafSalt, ...lineProof }) => lineProof) }, first.rootHash)).toMatchObject({
+      valid: false,
+      reason: "Invalid leaf salt",
+    });
+  });
+
   it("normalizes publisher line endings", () => {
     expect(splitLines("one\r\ntwo\nthree")).toEqual(["one", "two", "three"]);
   });

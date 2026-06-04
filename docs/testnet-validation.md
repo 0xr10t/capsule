@@ -246,3 +246,25 @@ Validation results:
   statuses across an API restart;
 - public reconciliation returned `checked: 4`, `verified: 4`, `failed: 0`
   both before and after that restart.
+
+## Seeded Diligence Marketplace Listing
+
+Validated on June 4, 2026 after hosted Render deployment. The marketplace was
+seeded with a realistic premium-research vertical so judges can browse a
+non-empty product instead of a synthetic three-line fixture.
+
+| Artifact | Public identifier |
+| --- | --- |
+| Listing title | `Northstar Components Supplier Concentration Diligence` |
+| Marketplace ID | `572d1f41-5429-47c3-9a2f-66719e96d4a5` |
+| Sui Document object | `0xbb7df061872f1708ad71dfbdc0f206400e2570568af001f39664fb6ade3e516f` |
+| Document transaction | `AWjHofEc2hsG6qLTKAVTWKk9UkzgiaZhewVdhqtH5sbV` |
+| Manifest Walrus blob | `iYxzV2wqESbqMIdLN_GW5VKwiutYC-ngr8PqDAvg-JQ` |
+| Manifest Walrus object | `0xbd4b393f34416100c76f4dfea06b54f7f49a71bec53d58d5b1ec71f9bd169e4f` |
+| Root hash | `1fd5df86e87501ffdd1b27fb7e3fc62950286db48b88a2be93a494fd933f4662` |
+| Fragment count | `5` |
+| Price | `1,000,000` MIST per line |
+
+The listing uses salted Merkle leaves and Seal-encrypted fixed fragments. The
+marketplace list endpoint collapses duplicate same-title seed attempts to the
+newest listing for judge-facing UX.

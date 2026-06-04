@@ -1,13 +1,13 @@
 # Capsule 
 
-> Walrus-native selective disclosure for verifiable AI knowledge exchange.
+> Sell verifiable excerpts of private research without revealing the full source.
 
-**Capsule** is a protocol and marketplace demo
-built for the Walrus track of Sui Overflow 2026. Publishers encrypt documents,
-commit their line-level Merkle roots on Sui, and disclose only purchased
-fragments. Buyers and AI agents unlock durable Walrus capsules containing the
-disclosed lines, proof material, and provenance needed to verify those lines
-without receiving the full source document.
+**Capsule** is a protocol and marketplace demo built for the Walrus track of
+Sui Overflow 2026. A research firm can publish a private due-diligence report,
+keep the full report hidden, and sell only a verifiable section such as
+"supplier concentration risks" to a buyer or AI agent. The buyer pays in SUI,
+decrypts the purchased fragment through Seal, and verifies the result against a
+Sui-anchored publisher commitment.
 
 ## Why Capsule
 
@@ -24,6 +24,10 @@ verifiable without making it wholly visible:
   records.
 - **Agent-ready output:** capsules are stable JSON artifacts suitable for
   verified retrieval and AI workflows.
+
+The initial commercial wedge is premium research and due-diligence
+intelligence for humans and AI agents. Capsule is not positioned as a generic
+file marketplace; it is a market for independently verifiable excerpts.
 
 ## Live Testnet Validation
 
@@ -51,6 +55,17 @@ purchase was rejected by the fragment policy. Full public artifacts are recorded
 [`docs/testnet-validation.md`](docs/testnet-validation.md) and
 [`deployments/sui-testnet.json`](deployments/sui-testnet.json).
 
+The hosted marketplace is also seeded with a realistic diligence report:
+
+| Item | Public identifier |
+| --- | --- |
+| Listing | `Northstar Components Supplier Concentration Diligence` |
+| Marketplace ID | `572d1f41-5429-47c3-9a2f-66719e96d4a5` |
+| Sui Document object | `0xbb7df061872f1708ad71dfbdc0f206400e2570568af001f39664fb6ade3e516f` |
+| Document transaction | `AWjHofEc2hsG6qLTKAVTWKk9UkzgiaZhewVdhqtH5sbV` |
+| Manifest Walrus blob | `iYxzV2wqESbqMIdLN_GW5VKwiutYC-ngr8PqDAvg-JQ` |
+| Fragment count | `5` fixed Seal-encrypted sections |
+
 ## Judge Checklist
 
 The current repo addresses several common review concerns directly:
@@ -63,9 +78,10 @@ The current repo addresses several common review concerns directly:
 | Walrus integration | Encrypted fragments, delivery capsules, and the frontend Walrus Site are on testnet |
 | Agent story | `apps/agent-mcp` exposes read-only MCP tools for discovery and verification |
 | CI | GitHub Actions runs the monorepo build, tests, and script typecheck |
+| Privacy design | Publisher-sealed fragments use salted Merkle leaves to reduce offline guessing risk |
 
-Remaining demo work is mostly presentation: seed a small real-looking dataset
-into the hosted marketplace and record a short end-to-end walkthrough.
+Remaining demo work is mostly presentation: record a short end-to-end
+walkthrough and add a larger public benchmark run.
 
 ## Product Workflow
 
@@ -159,6 +175,15 @@ With publisher-sealed fragments enabled, Walrus stores Seal envelopes rather
 than this plaintext JSON. No original document key is created by the host in
 this mode.
 
+Salted publisher commitments use:
+
+```text
+leaf = SHA256("capsule:salted-leaf:v1" || line_index || random_salt || line_content)
+```
+
+The disclosed capsule includes salts only for purchased lines. See
+[`docs/threat-model.md`](docs/threat-model.md).
+
 ## Architecture
 
 | Layer | Implementation | Responsibility |
@@ -210,7 +235,8 @@ marketplace can persist metadata in PostgreSQL and reconcile its recorded
 documents, fragments, purchases, and disclosures against public Sui state.
 Remaining production gaps include stronger publisher authentication/ownership
 UX and operational hardening for hosted deployment. See
-[`docs/roadmap.md`](docs/roadmap.md).
+[`docs/roadmap.md`](docs/roadmap.md), [`docs/threat-model.md`](docs/threat-model.md),
+and [`docs/benchmarks.md`](docs/benchmarks.md).
 
 ## Run Locally
 

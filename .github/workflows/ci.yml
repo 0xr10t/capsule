@@ -23,8 +23,26 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install Sui and WASM tooling
+        run: |
+          cargo install --locked wasm-pack
+          cargo install --locked --git https://github.com/MystenLabs/suiup.git suiup
+          "$HOME/.cargo/bin/suiup" install -y sui@testnet
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
       - name: Install dependencies
         run: npm ci
 
       - name: Build and test
         run: npm run check
+
+      - name: Build and test Move package
+        run: |
+          npm run move:build
+          npm run move:test
+
+      - name: Build WASM proof engine
+        run: |
+          npm run wasm:node
+          npm run wasm:web

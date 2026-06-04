@@ -54,11 +54,13 @@ export interface ProofNode {
 
 export interface LineProof {
   lineIndex: number;
+  leafSalt?: string;
   siblings: ProofNode[];
 }
 
 export interface MerkleRangeProof {
   algorithm: "sha256";
+  leafHashing?: "plain-sha256" | "salted-sha256-v1";
   leafCount: number;
   paddedLeafCount: number;
   range: LineRange;

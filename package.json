@@ -17,6 +17,9 @@
     "check:scripts": "tsc --noEmit -p scripts/tsconfig.json",
     "check": "npm run build && npm run test && npm run check:scripts",
     "move:build": "cd packages/sui-contracts && sui move build",
+    "move:test": "sui move test --path packages/sui-contracts",
+    "benchmark:proof": "node --import tsx scripts/benchmark-proof.ts",
+    "seed:diligence": "node --import tsx scripts/seed-diligence-demo.ts",
     "deploy:testnet": "node --import tsx scripts/deploy-sui-testnet.ts",
     "wasm:node": "cd packages/proof-engine-rust && wasm-pack build --target nodejs --out-dir pkg-node",
     "wasm:web": "cd packages/proof-engine-rust && wasm-pack build --target web --out-dir pkg-web"
