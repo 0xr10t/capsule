@@ -1,15 +1,22 @@
 # Capsule
 
-> A Walrus-native marketplace where AI agents and humans buy verifiable slices
-> of private data without receiving the full source.
+> A marketplace for verifiable private knowledge.
 
-**Capsule** is a protocol and marketplace demo built for the Walrus track of
-Sui Overflow 2026. A data owner can publish a private file, dataset, research
-report, or other line-oriented document, keep the full source hidden, and sell
-only the fragment a buyer needs. AI agents can discover those fragments,
-purchase access in SUI, decrypt the paid section through Seal, and verify the
-result against a Sui-anchored publisher commitment before using it in a RAG,
-training-data, diligence, or research workflow.
+Today, if someone sells you a section from a private report or dataset, they
+can copy-paste anything, and you have no way to verify whether it came from the
+original document.
+
+**Capsule** lets publishers commit a document once, keep the full source
+private, and sell only selected sections. Buyers receive the purchased fragment
+with a cryptographic proof that verifies it against the original on-chain
+commitment.
+
+Instead of trusting the seller, the buyer verifies the content mathematically.
+
+Built for the Walrus track of Sui Overflow 2026, Capsule uses Walrus for
+durable encrypted data storage, Sui for commitments and payment provenance,
+and Seal for buyer-only decryption. It turns private files into selectively
+purchasable knowledge artifacts for humans and AI agents.
 
 ## Why Capsule
 
