@@ -1,19 +1,21 @@
-# Capsule 
+# Capsule
 
-> Sell verifiable excerpts of private research without revealing the full source.
+> A Walrus-native marketplace where AI agents and humans buy verifiable slices
+> of private data without receiving the full source.
 
 **Capsule** is a protocol and marketplace demo built for the Walrus track of
-Sui Overflow 2026. A research firm can publish a private due-diligence report,
-keep the full report hidden, and sell only a verifiable section such as
-"supplier concentration risks" to a buyer or AI agent. The buyer pays in SUI,
-decrypts the purchased fragment through Seal, and verifies the result against a
-Sui-anchored publisher commitment.
+Sui Overflow 2026. A data owner can publish a private file, dataset, research
+report, or other line-oriented document, keep the full source hidden, and sell
+only the fragment a buyer needs. AI agents can discover those fragments,
+purchase access in SUI, decrypt the paid section through Seal, and verify the
+result against a Sui-anchored publisher commitment before using it in a RAG,
+training-data, diligence, or research workflow.
 
 ## Why Capsule
 
 Private datasets are valuable because they are not public, but useful knowledge
-often lives in a small excerpt. Capsule makes a document independently
-verifiable without making it wholly visible:
+often lives in a small excerpt. Capsule turns private files into verifiable,
+selectively purchasable data products:
 
 - **Selective disclosure:** buyers receive only the purchased line range.
 - **Verifiable content:** SHA-256 Merkle proofs tie each disclosed line to the
@@ -25,9 +27,37 @@ verifiable without making it wholly visible:
 - **Agent-ready output:** capsules are stable JSON artifacts suitable for
   verified retrieval and AI workflows.
 
-The initial commercial wedge is premium research and due-diligence
-intelligence for humans and AI agents. Capsule is not positioned as a generic
-file marketplace; it is a market for independently verifiable excerpts.
+Capsule can start as a marketplace for premium research, diligence reports,
+model-evaluation datasets, licensed training-data fragments, and expert
+knowledge packs. The longer-term vision also supports permissioned selective
+disclosure for sensitive documents such as medical reports, insurance records,
+legal files, or compliance evidence. Those regulated use cases require stronger
+identity, consent, licensing, and metadata-privacy controls, so the current
+hackathon build demonstrates the trust-minimized data-commerce primitive rather
+than claiming production healthcare or legal compliance.
+
+## Why Walrus Is Core
+
+Capsule is not using Walrus as a cosmetic upload bucket. Walrus is the durable
+artifact layer that makes the product work:
+
+- **Private files are too large for Sui:** Sui anchors commitments, payments,
+  and provenance, while Walrus stores encrypted data at the scale expected of
+  file and dataset marketplaces.
+- **Blobs are independently retrievable:** buyers, auditors, and AI agents can
+  fetch encrypted fragments and capsules without trusting Capsule's API server
+  to keep serving them forever.
+- **Public storage forces correct encryption:** Walrus blobs are public by
+  design, so Capsule uses Seal-encrypted fragments before upload and releases
+  decryption only after Sui purchase authorization.
+- **Capsules become permanent provenance objects:** every purchased fragment can
+  be replayed, inspected, verified, and cited as a durable Walrus artifact.
+- **The demo itself can live on Walrus:** the frontend is deployable as a
+  Walrus Site, making the application, data, and verification story all part of
+  the Walrus/Sui stack.
+
+Removing Walrus would reduce Capsule to a normal API-backed marketplace.
+Walrus is what makes the marketplace durable, verifiable, and agent-friendly.
 
 ## Live Testnet Validation
 
@@ -79,9 +109,6 @@ The current repo addresses several common review concerns directly:
 | Agent story | `apps/agent-mcp` exposes read-only MCP tools for discovery and verification |
 | CI | GitHub Actions runs the monorepo build, tests, and script typecheck |
 | Privacy design | Publisher-sealed fragments use salted Merkle leaves to reduce offline guessing risk |
-
-Remaining demo work is mostly presentation: record a short end-to-end
-walkthrough and add a larger public benchmark run.
 
 ## Product Workflow
 
