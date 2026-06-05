@@ -22,8 +22,13 @@ export function Layout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-white/10 bg-[#050609]/78 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-4 md:px-6">
           <button className="flex items-center gap-3" onClick={() => navigate("marketplace")} type="button">
-            <span className="grid h-11 w-11 place-items-center rounded-2xl border border-teal-200/20 bg-teal-300 text-lg font-bold text-slate-950 shadow-[0_0_42px_rgba(94,234,212,0.25)]">
-              C
+            <span className="grid h-12 w-12 place-items-center overflow-hidden rounded-2xl border border-cyan-200/20 bg-cyan-300/10 shadow-[0_0_42px_rgba(34,211,238,0.28)]">
+              <img
+                alt=""
+                className="h-full w-full origin-[58%_70%] scale-[2.05] object-cover object-center"
+                draggable={false}
+                src="/capsule_icon.png"
+              />
             </span>
             <span className="text-left">
               <span className="block font-semibold tracking-tight text-white">Capsule</span>

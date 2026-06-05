@@ -209,6 +209,17 @@ export function Marketplace() {
         <RaycastAnimatedBackground className="hidden md:block" />
         <div className="relative grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
           <div>
+            <div className="mb-5 inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-2 pr-4 shadow-2xl shadow-cyan-950/20 backdrop-blur">
+              <span className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl">
+                <img
+                  alt=""
+                  className="h-full w-full origin-[58%_70%] scale-[1.9] object-cover"
+                  draggable={false}
+                  src="/capsule_icon.png"
+                />
+              </span>
+              <span className="text-sm font-semibold tracking-wide text-slate-100">Capsule</span>
+            </div>
             <div className="inline-flex items-center gap-2 rounded-full border border-teal-300/20 bg-teal-300/8 px-3 py-2 text-xs font-medium text-teal-100">
               <Sparkles className="size-4" />
               Walrus-native private knowledge marketplace
