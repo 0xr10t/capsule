@@ -12,8 +12,10 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
+          motion: ["framer-motion", "lucide-react"],
           query: ["@tanstack/react-query", "zustand"],
           sui: ["@mysten/dapp-kit", "@mysten/sui/client", "@mysten/sui/jsonRpc"],
+          unicorn: ["unicornstudio-react"],
         },
       },
     },

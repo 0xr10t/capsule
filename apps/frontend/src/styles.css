@@ -3,7 +3,7 @@
 :root {
   font-family: Inter, "Avenir Next", Arial, sans-serif;
   color: #eef7f5;
-  background: #060b13;
+  background: #050609;
   font-synthesis: none;
   text-rendering: geometricprecision;
 }
@@ -13,9 +13,9 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 78% 2%, rgba(39, 216, 184, 0.13), transparent 32rem),
-    radial-gradient(circle at 18% 32%, rgba(42, 105, 177, 0.14), transparent 38rem),
-    #060b13;
+    radial-gradient(circle at 78% 2%, rgba(255, 255, 255, 0.08), transparent 28rem),
+    radial-gradient(circle at 18% 18%, rgba(45, 212, 191, 0.13), transparent 34rem),
+    #050609;
 }
 
 button {
@@ -38,15 +38,15 @@ button {
 
 .protocol-card,
 .listing-card {
-  @apply rounded-2xl border border-white/8 bg-white/[0.035] p-6 shadow-2xl shadow-black/15;
+  @apply rounded-[1.6rem] border border-white/10 bg-[#08090d]/90 p-6 shadow-2xl shadow-black/25;
 }
 
 .readiness-card {
-  @apply rounded-2xl border border-teal-300/20 bg-teal-300/[0.055] p-6 shadow-2xl shadow-black/15;
+  @apply rounded-[1.6rem] border border-white/10 bg-[#08090d]/90 p-6 shadow-2xl shadow-black/25;
 }
 
 .readiness-row {
-  @apply grid items-start gap-3 rounded-xl border border-white/8 bg-slate-950/35 p-4 text-sm md:grid-cols-[auto_1fr_auto];
+  @apply grid items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm md:grid-cols-[auto_1fr_auto];
 }
 
 .readiness-row > span {
@@ -66,7 +66,7 @@ button {
 }
 
 .flow-row {
-  @apply mt-5 flex items-center gap-5 rounded-xl bg-white/[0.035] px-4 py-4;
+  @apply mt-5 flex items-center gap-5 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-4;
 }
 
 .flow-row span {
@@ -78,7 +78,7 @@ button {
 }
 
 .status-dot {
-  @apply rounded-full bg-teal-300/12 px-3 py-1 text-xs text-teal-300;
+  @apply rounded-full border border-teal-300/20 bg-teal-300/10 px-3 py-1 text-xs text-teal-200;
 }
 
 .field {
@@ -89,7 +89,7 @@ button {
 .field textarea,
 .field select,
 .source-editor {
-  @apply rounded-lg border border-white/10 bg-slate-950/45 px-3 py-2.5 font-sans text-sm tracking-normal text-slate-100 outline-none transition focus:border-teal-300/60;
+  @apply rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 font-sans text-sm tracking-normal text-slate-100 outline-none transition focus:border-teal-300/60;
 }
 
 .source-editor {
