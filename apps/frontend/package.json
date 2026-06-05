@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run build -w @capsule/shared-types && npm run build -w @capsule/sdk-typescript && tsc --noEmit && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
