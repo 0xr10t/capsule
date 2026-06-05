@@ -41,30 +41,6 @@ button {
   @apply rounded-[1.6rem] border border-white/10 bg-[#08090d]/90 p-6 shadow-2xl shadow-black/25;
 }
 
-.readiness-card {
-  @apply rounded-[1.6rem] border border-white/10 bg-[#08090d]/90 p-6 shadow-2xl shadow-black/25;
-}
-
-.readiness-row {
-  @apply grid items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm md:grid-cols-[auto_1fr_auto];
-}
-
-.readiness-row > span {
-  @apply grid h-6 w-6 place-items-center rounded-full bg-teal-300 text-xs font-bold text-slate-950;
-}
-
-.readiness-row strong {
-  @apply block text-slate-100;
-}
-
-.readiness-row p {
-  @apply mt-1 text-xs leading-5 text-slate-400;
-}
-
-.readiness-row code {
-  @apply rounded-full bg-white/8 px-3 py-1 font-mono text-[11px] text-teal-200;
-}
-
 .flow-row {
   @apply mt-5 flex items-center gap-5 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-4;
 }
@@ -75,10 +51,6 @@ button {
 
 .flow-row strong {
   @apply text-sm font-medium text-slate-100;
-}
-
-.status-dot {
-  @apply rounded-full border border-teal-300/20 bg-teal-300/10 px-3 py-1 text-xs text-teal-200;
 }
 
 .field {

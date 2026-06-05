@@ -8,7 +8,6 @@ import { capsuleClient } from "../lib/client";
 import { unlockCapsule } from "../lib/seal";
 import { useCapsuleStore } from "../lib/store";
 import { CapsuleFeatures, featureHighlights } from "./CapsuleFeatures";
-import { ReadinessPanel } from "./ReadinessPanel";
 import { ContainerScroll } from "./ui/container-scroll-animation";
 import { ExpandableTabs } from "./ui/expandable-tabs";
 import { RaycastAnimatedBackground } from "./ui/raycast-animated-background";
@@ -207,7 +206,7 @@ export function Marketplace() {
     <>
       <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#07080c]/80 px-5 py-10 shadow-2xl shadow-black/30 md:px-10 md:py-14">
         <RaycastAnimatedBackground className="hidden md:block" />
-        <div className="relative grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="relative max-w-5xl">
           <div>
             <div className="mb-5 inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-2 pr-4 shadow-2xl shadow-cyan-950/20 backdrop-blur">
               <span className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl">
@@ -255,7 +254,6 @@ export function Marketplace() {
               ))}
             </div>
           </div>
-          <ReadinessPanel />
         </div>
       </section>
 
