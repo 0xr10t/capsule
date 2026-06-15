@@ -12,6 +12,7 @@ export interface PublishedFragment {
   range: LineRange;
   sealIdentity: string;
   encryptedBlobId: BlobId;
+  sealedEnvelope?: Omit<SealedCapsuleEnvelope, "suiPurchaseId" | "accessPolicy" | "suiFragmentId">;
   walrusBlobObjectId?: string;
   suiFragmentId?: string;
   registrationTx?: string;

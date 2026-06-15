@@ -275,6 +275,7 @@ async function seedListing(listing: DemoListing, sealClient: SealClient): Promis
 
 async function main(): Promise<void> {
   const titles = await existingTitles();
+  const force = process.env.SEED_FORCE === "true";
   const suiClient = new SuiJsonRpcClient({
     network: "testnet",
     url: process.env.SUI_RPC_URL ?? getJsonRpcFullnodeUrl("testnet"),
@@ -287,7 +288,7 @@ async function main(): Promise<void> {
 
   const results = [];
   for (const listing of demoListings) {
-    if (titles.has(listing.title)) {
+    if (!force && titles.has(listing.title)) {
       console.log(`Skipping existing demo listing: ${listing.title}`);
       results.push({ title: listing.title, skipped: true });
       continue;

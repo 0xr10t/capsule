@@ -24,6 +24,13 @@ const fragmentSchema = z.object({
   range: rangeSchema,
   sealIdentity: z.string().regex(/^[\da-f]+$/i),
   encryptedBlobId: z.string().min(1),
+  sealedEnvelope: z.object({
+    version: z.literal("1"),
+    algorithm: z.literal("SEAL"),
+    packageId: z.string().min(1),
+    identity: z.string().regex(/^[\da-f]+$/i),
+    encryptedObject: z.string().min(1),
+  }).optional(),
   walrusBlobObjectId: z.string().optional(),
   suiFragmentId: z.string().optional(),
   registrationTx: z.string().optional(),

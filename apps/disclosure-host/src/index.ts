@@ -152,6 +152,7 @@ app.post("/documents/upload-sealed-fragments", async (request, response) => {
         range: fragment.range,
         sealIdentity: fragment.envelope.identity,
         encryptedBlobId: blob.blobId,
+        sealedEnvelope: fragment.envelope,
         walrusBlobObjectId: blob.suiObjectId,
       });
     }
@@ -238,11 +239,14 @@ app.post("/disclosure/generate", async (request, response) => {
       if (!sui || !listing.suiDocumentId || !purchase.suiPurchaseId || !fragment?.suiFragmentId) {
         throw new Error("Paid purchase does not identify an available sealed fragment");
       }
-      const envelopeBytes = await storage.fetchBlob(fragment.encryptedBlobId);
-      const envelope = JSON.parse(Buffer.from(envelopeBytes).toString("utf8")) as Omit<
-        SealedCapsuleEnvelope,
-        "suiPurchaseId" | "accessPolicy" | "suiFragmentId"
-      >;
+      let envelope = fragment.sealedEnvelope;
+      if (!envelope) {
+        const envelopeBytes = await storage.fetchBlob(fragment.encryptedBlobId);
+        envelope = JSON.parse(Buffer.from(envelopeBytes).toString("utf8")) as Omit<
+          SealedCapsuleEnvelope,
+          "suiPurchaseId" | "accessPolicy" | "suiFragmentId"
+        >;
+      }
       const summary: CapsuleSummary = {
         capsuleId: randomUUID(),
         documentId: listing.id,
