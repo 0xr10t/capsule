@@ -43,6 +43,38 @@ identity, consent, licensing, and metadata-privacy controls, so the current
 hackathon build demonstrates the trust-minimized data-commerce primitive rather
 than claiming production healthcare or legal compliance.
 
+## Capsule Artifact
+
+A decrypted disclosure capsule is an immutable, replayable knowledge fragment
+for its authorized buyer:
+
+```json
+{
+  "documentBlobId": "walrus-encrypted-source-blob",
+  "suiDocumentId": "0x...",
+  "rootHash": "sha256-merkle-root",
+  "lineRange": { "start": 199, "end": 249 },
+  "disclosedContent": ["..."],
+  "proof": {},
+  "paymentTx": "sui-payment-transaction-digest",
+  "suiPurchaseId": "0x...",
+  "disclosureMode": "publisher-sealed-fragment"
+}
+```
+
+With publisher-sealed fragments enabled, Walrus stores Seal envelopes rather
+than this plaintext JSON. No original document key is created by the host in
+this mode.
+
+Salted publisher commitments use:
+
+```text
+leaf = SHA256("capsule:salted-leaf:v1" || document_nonce || line_index || line_nonce || line_content)
+```
+
+The disclosed capsule includes line nonces only for purchased lines. See
+[`docs/threat-model.md`](docs/threat-model.md).
+
 ## Why Walrus Is Core
 
 Capsule is not using Walrus as a cosmetic upload bucket. Walrus is the durable
@@ -66,58 +98,19 @@ artifact layer that makes the product work:
 Removing Walrus would reduce Capsule to a normal API-backed marketplace.
 Walrus is what makes the marketplace durable, verifiable, and agent-friendly.
 
-## Live Testnet Validation
+## Architecture
 
-The current build has completed a real synthetic end-to-end run against Walrus
-testnet and Sui testnet:
-
-| Item | Public identifier |
-| --- | --- |
-| Sui Move package with fixed-fragment policy | `0xd7fbb00bee87bbc0f9f4a196dac5f6607cc22f11157e6ed9e24dfd9cd02f4112` |
-| Package publish transaction | `Byn8XZrEqQdoP67voZhQkhw1ATb34HRBKek7sLCE1P9Z` |
-| Anchored Document object | `0x2a8769dd14306288c9debcd587b07923d1c4d1fa96ea368b427f7860b0274262` |
-| Encrypted Fragment object | `0x678194bd04275dd5b6c35a7956c37364bee83adc336f67c2629e7d8c4c380a4f` |
-| Paid fragment Purchase object | `0x125376c66e5afed0b3e42e3fb2b4992059a5336d28a26020e6dea04be62e194a` |
-| Payment transaction | `AsVFwTBv4oNJVxeF9hziNZu1N8nRokfokaD39wQsBQxD` |
-| Recorded Disclosure object | `0xa8d4dc5441f7edafb0b561d311c0b6c910480b7bcb5ada1c43c1620de7220f08` |
-| Encrypted fragment Walrus blob | `YjFJYV37rpX9XE9qm9UI_rcCJ7xiNC6K39Qb8dPYYu4` |
-| Encrypted delivery Walrus blob | `QFkdFayU0fhlnkFKYLk-oXNDSbtGUyJBtZj6pD4liuI` |
-
-On May 27, 2026, the publisher-side flow sent no plaintext `content` field to
-the disclosure host: the browser-produced Seal ciphertext was stored on
-Walrus, registered as a Sui `Fragment`, and sold through a real `1,000,000`
-MIST fragment-bound purchase. The buyer decrypted one selected line through
-Seal and verified it against the Sui root. A separate same-range legacy
-purchase was rejected by the fragment policy. Full public artifacts are recorded in
-[`docs/testnet-validation.md`](docs/testnet-validation.md) and
-[`deployments/sui-testnet.json`](deployments/sui-testnet.json).
-
-The hosted marketplace is seeded with realistic AI-data marketplace examples:
-
-| Listing | Use case |
-| --- | --- |
-| `Supplier Risk Report — Battery Supply Chain` | EV procurement and supplier-risk intelligence |
-| `Private Crypto Protocol Diligence Report` | Protocol, treasury, and validator-risk research |
-| `AI Model Evaluation Dataset Notes` | Verified model-evaluation evidence for agents |
-| `Market Intelligence: India EV Components` | Market-entry and sourcing intelligence |
-| `Legal Case Research Memo — Public demo synthetic` | Permissioned selective-disclosure demo without real client data |
-
-Each listing is published as fixed Seal-encrypted fragments with salted Merkle
-proofs, Walrus blob references, and Sui document/fragment commitments.
-
-## Judge Checklist
-
-The current repo addresses several common review concerns directly:
-
-| Concern | Current status |
-| --- | --- |
-| Wallet connect | Implemented with Sui dApp Kit and visible in the frontend header |
-| Live payment | Buyer signs `purchase_fragment`; Sui creates a public paid `Purchase` receipt |
-| Seal integration | Publisher-side encrypted fragments and buyer-only decrypt through `seal_approve_fragment` |
-| Walrus integration | Encrypted fragments, delivery capsules, and the frontend Walrus Site are on testnet |
-| Agent story | `apps/agent-mcp` exposes read-only MCP tools for discovery and verification |
-| CI | GitHub Actions runs the monorepo build, tests, and script typecheck |
-| Privacy design | Publisher-sealed fragments use salted Merkle leaves to reduce offline guessing risk |
+| Layer | Implementation | Responsibility |
+| --- | --- | --- |
+| Interface | React, Vite, Tailwind, TanStack Query, Zustand | Upload, browse, issue capsules, verify |
+| Marketplace API | Express, TypeScript, PostgreSQL | Durable listings, prices, receipts, public audit index |
+| Disclosure Host | Express, TypeScript | Ciphertext storage, paid-delivery provenance, Sui submission |
+| Agent MCP | MCP stdio, TypeScript SDK | AI tools for listing, fetching, and verifying capsules |
+| Proof SDK | TypeScript | Browser/node Merkle and capsule verification |
+| Proof Engine | Rust, WASM | Canonical Merkle operations and WASM exports |
+| Storage | Walrus | Encrypted fragments, manifests, and encrypted delivery capsules |
+| Commitments | Sui Move | Document roots, payments, disclosure provenance, Seal policy |
+| Access control | Seal | Buyer-only decryption of paid capsule payloads |
 
 ## Product Workflow
 
@@ -188,51 +181,6 @@ sequenceDiagram
 4. The browser independently verifies its Merkle proof and resolves the Sui
    document anchor before accepting the revealed content.
 
-## Capsule Artifact
-
-A decrypted disclosure capsule is an immutable, replayable knowledge fragment
-for its authorized buyer:
-
-```json
-{
-  "documentBlobId": "walrus-encrypted-source-blob",
-  "suiDocumentId": "0x...",
-  "rootHash": "sha256-merkle-root",
-  "lineRange": { "start": 199, "end": 249 },
-  "disclosedContent": ["..."],
-  "proof": {},
-  "paymentTx": "sui-payment-transaction-digest",
-  "suiPurchaseId": "0x...",
-  "disclosureMode": "publisher-sealed-fragment"
-}
-```
-
-With publisher-sealed fragments enabled, Walrus stores Seal envelopes rather
-than this plaintext JSON. No original document key is created by the host in
-this mode.
-
-Salted publisher commitments use:
-
-```text
-leaf = SHA256("capsule:salted-leaf:v1" || document_nonce || line_index || line_nonce || line_content)
-```
-
-The disclosed capsule includes line nonces only for purchased lines. See
-[`docs/threat-model.md`](docs/threat-model.md).
-
-## Architecture
-
-| Layer | Implementation | Responsibility |
-| --- | --- | --- |
-| Interface | React, Vite, Tailwind, TanStack Query, Zustand | Upload, browse, issue capsules, verify |
-| Marketplace API | Express, TypeScript, PostgreSQL | Durable listings, prices, receipts, public audit index |
-| Disclosure Host | Express, TypeScript | Ciphertext storage, paid-delivery provenance, Sui submission |
-| Agent MCP | MCP stdio, TypeScript SDK | AI tools for listing, fetching, and verifying capsules |
-| Proof SDK | TypeScript | Browser/node Merkle and capsule verification |
-| Proof Engine | Rust, WASM | Canonical Merkle operations and WASM exports |
-| Storage | Walrus | Encrypted fragments, manifests, and encrypted delivery capsules |
-| Commitments | Sui Move | Document roots, payments, disclosure provenance, Seal policy |
-| Access control | Seal | Buyer-only decryption of paid capsule payloads |
 
 ### Monorepo
 
@@ -246,6 +194,45 @@ The disclosed capsule includes line nonces only for purchased lines. See
 | `packages/sdk-typescript` | Browser/node verification and client SDK |
 | `packages/proof-engine-rust` | Rust Merkle implementation with WASM exports |
 | `packages/sui-contracts` | Move document and disclosure objects |
+
+## Live Testnet Validation
+
+The current build has completed a real synthetic end-to-end run against Walrus
+testnet and Sui testnet:
+
+| Item | Public identifier |
+| --- | --- |
+| Sui Move package with fixed-fragment policy | `0xd7fbb00bee87bbc0f9f4a196dac5f6607cc22f11157e6ed9e24dfd9cd02f4112` |
+| Package publish transaction | `Byn8XZrEqQdoP67voZhQkhw1ATb34HRBKek7sLCE1P9Z` |
+| Anchored Document object | `0x2a8769dd14306288c9debcd587b07923d1c4d1fa96ea368b427f7860b0274262` |
+| Encrypted Fragment object | `0x678194bd04275dd5b6c35a7956c37364bee83adc336f67c2629e7d8c4c380a4f` |
+| Paid fragment Purchase object | `0x125376c66e5afed0b3e42e3fb2b4992059a5336d28a26020e6dea04be62e194a` |
+| Payment transaction | `AsVFwTBv4oNJVxeF9hziNZu1N8nRokfokaD39wQsBQxD` |
+| Recorded Disclosure object | `0xa8d4dc5441f7edafb0b561d311c0b6c910480b7bcb5ada1c43c1620de7220f08` |
+| Encrypted fragment Walrus blob | `YjFJYV37rpX9XE9qm9UI_rcCJ7xiNC6K39Qb8dPYYu4` |
+| Encrypted delivery Walrus blob | `QFkdFayU0fhlnkFKYLk-oXNDSbtGUyJBtZj6pD4liuI` |
+
+On May 27, 2026, the publisher-side flow sent no plaintext `content` field to
+the disclosure host: the browser-produced Seal ciphertext was stored on
+Walrus, registered as a Sui `Fragment`, and sold through a real `1,000,000`
+MIST fragment-bound purchase. The buyer decrypted one selected line through
+Seal and verified it against the Sui root. A separate same-range legacy
+purchase was rejected by the fragment policy. Full public artifacts are recorded in
+[`docs/testnet-validation.md`](docs/testnet-validation.md) and
+[`deployments/sui-testnet.json`](deployments/sui-testnet.json).
+
+The hosted marketplace is seeded with realistic AI-data marketplace examples:
+
+| Listing | Use case |
+| --- | --- |
+| `Supplier Risk Report — Battery Supply Chain` | EV procurement and supplier-risk intelligence |
+| `Private Crypto Protocol Diligence Report` | Protocol, treasury, and validator-risk research |
+| `AI Model Evaluation Dataset Notes` | Verified model-evaluation evidence for agents |
+| `Market Intelligence: India EV Components` | Market-entry and sourcing intelligence |
+| `Legal Case Research Memo — Public demo synthetic` | Permissioned selective-disclosure demo without real client data |
+
+Each listing is published as fixed Seal-encrypted fragments with salted Merkle
+proofs, Walrus blob references, and Sui document/fragment commitments.
 
 ## Security Model And MVP Boundary
 
